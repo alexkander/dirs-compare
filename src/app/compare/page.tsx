@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -251,7 +252,10 @@ export default function ComparePage() {
   };
 
   return (
-    <div className="container mx-auto p-8 text-white">
+    <div className="container mx-auto p-4">
+      <Link href="/" className="text-blue-500 hover:underline mb-4 inline-block">
+        &larr; Back to Folders
+      </Link>
       <header className="mb-8">
         <h1 className="text-3xl font-bold">Compare Folders</h1>
         <p className="text-gray-400">Select folders to compare their contents side-by-side.</p>
