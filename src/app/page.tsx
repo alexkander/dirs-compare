@@ -6,9 +6,12 @@ export default async function Home() {
 
   return (
     <div className="container mx-auto p-8">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Folder Sync Manager</h1>
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Folder Sync Manager</h1>
         <p className="text-gray-400">A list of your configured folders.</p>
+        </div>
+        <a href="/settings" className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">Settings</a>
       </header>
       <main>
         <AddFolderForm />

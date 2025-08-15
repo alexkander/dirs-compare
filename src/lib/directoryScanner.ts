@@ -7,7 +7,7 @@ export interface DirectoryNode {
   children?: DirectoryNode[];
 }
 
-export async function getDirectoryTree(rootDir: string): Promise<DirectoryNode | null> {
+export async function getDirectoryTree(rootDir: string, excludePatterns: string[] = []): Promise<DirectoryNode | null> {
   try {
     // Check if the root directory exists and is a directory
     const stats = await fs.stat(rootDir);
@@ -20,21 +20,34 @@ export async function getDirectoryTree(rootDir: string): Promise<DirectoryNode |
     return null; // Directory does not exist or other access error
   }
 
-  async function readDir(currentPath: string, relativePath: string): Promise<DirectoryNode> {
-    const name = path.basename(currentPath);
-    const node: DirectoryNode = { name, relativePath };
-    const entries = await fs.readdir(currentPath, { withFileTypes: true });
-    const directories = entries.filter(entry => entry.isDirectory());
-
-    if (directories.length > 0) {
-      node.children = await Promise.all(
-        directories.map(dir =>
-          readDir(path.join(currentPath, dir.name), path.join(relativePath, dir.name))
-        )
-      );
+  async function scan(directoryPath: string, relativePath: string): Promise<DirectoryNode | null> {
+    const name = path.basename(directoryPath);
+    if (excludePatterns.includes(name)) {
+      return null;
     }
+
+    const node: DirectoryNode = { name, relativePath, children: [] };
+    const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+
+    const childPromises = entries.map(entry => {
+      const childPath = path.join(directoryPath, entry.name);
+      const childRelativePath = path.join(relativePath, entry.name);
+      if (entry.isDirectory()) {
+        return scan(childPath, childRelativePath);
+      } else if (entry.isFile() && !excludePatterns.includes(entry.name)) {
+        return Promise.resolve({ name: entry.name, relativePath: childRelativePath });
+      } 
+      return Promise.resolve(null);
+    });
+
+    const children = (await Promise.all(childPromises)).filter((c): c is DirectoryNode => c !== null);
+
+    if (children.length > 0) {
+      node.children = children;
+    }
+
     return node;
   }
 
-  return readDir(rootDir, '.');
+  return scan(rootDir, '.');
 }

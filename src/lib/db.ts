@@ -27,7 +27,19 @@ db.exec(`
     lastSync TEXT NOT NULL,
     FOREIGN KEY (idFolder) REFERENCES folders (id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    globalExcludePatterns TEXT NOT NULL
+  );
 `);
+
+// Migration for settings table: rename excludedPatterns to globalExcludePatterns
+try {
+  db.exec('ALTER TABLE settings RENAME COLUMN excludedPatterns TO globalExcludePatterns');
+} catch (error) {
+  // Ignore error if column doesn't exist or is already renamed
+}
 
 // Add excludePatterns column to folders table if it doesn't exist (for existing databases)
 interface ColumnInfo {

@@ -1,5 +1,6 @@
 import { getFolderById } from '@/lib/folderStore';
 import { getDirectoryTree } from '@/lib/directoryScanner';
+import { getSettings } from '@/lib/settingsStore';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ExcludePatternsForm from '@/components/ExcludePatternsForm';
@@ -17,7 +18,8 @@ export default async function EditFolderPage({ params }: EditFolderPageProps) {
     notFound();
   }
 
-  const directoryTree = await getDirectoryTree(folder.absoluteRoute);
+  const settings = getSettings();
+  const directoryTree = await getDirectoryTree(folder.absoluteRoute, settings.globalExcludePatterns);
 
   return (
     <div className="container mx-auto p-8 text-white">
