@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import path from 'path';
+import { useEffect, useMemo, useState } from 'react';
 import { Folder } from '../lib/folderStore';
 import { formatBytes, formatChecksum } from '../lib/formatters';
 
@@ -107,7 +107,14 @@ export default function Home() {
           <h1 className="text-2xl font-bold text-white">Folder Sync Manager</h1>
           <p className="text-gray-400">A list of your configured folders.</p>
         </div>
-        <Link href="/settings" className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">Settings</Link>
+        <div className="flex items-center space-x-4">
+          <Link href="/compare" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors">
+            Comparar
+          </Link>
+          <Link href="/settings" className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
+            Settings
+          </Link>
+        </div>
       </header>
 
       <main>
@@ -135,7 +142,6 @@ Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending'
 Checksum {sortConfig?.key === 'checksum' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                   Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Exclude Patterns</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -155,11 +161,6 @@ Checksum {sortConfig?.key === 'checksum' && (sortConfig.direction === 'ascending
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.totalBytes != null ? formatBytes(folder.totalBytes) : ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      <div className="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={folder.excludePatterns.join(', ')}>
-                        {folder.excludePatterns.join(', ')}
-                      </div>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-4">
                       <button
                         onClick={() => handleSync(folder.id)}
