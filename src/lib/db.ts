@@ -26,6 +26,7 @@ db.exec(`
     relativeRoute TEXT NOT NULL,
     idFolder TEXT NOT NULL,
     checksum TEXT NOT NULL,
+    sizeBytes INTEGER NOT NULL,
     lastSync TEXT NOT NULL,
     FOREIGN KEY (idFolder) REFERENCES folders (id) ON DELETE CASCADE
   );
@@ -39,8 +40,15 @@ db.exec(`
 // Migration for settings table: rename excludedPatterns to globalExcludePatterns
 try {
   db.exec('ALTER TABLE settings RENAME COLUMN excludedPatterns TO globalExcludePatterns');
-} catch (error) {
+} catch {
   // Ignore error if column doesn't exist or is already renamed
+}
+
+// Migration for file_items table: add sizeBytes
+try {
+  db.exec('ALTER TABLE file_items ADD COLUMN sizeBytes INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // Ignore error if column already exists
 }
 
 // Add excludePatterns, totalBytes and countFiles columns to folders table if they don't exist (for existing databases)

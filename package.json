@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
+    "micromatch": "^4.0.8",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -19,6 +20,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/micromatch": "^4.0.9",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

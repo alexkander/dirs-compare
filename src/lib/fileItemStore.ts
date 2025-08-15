@@ -6,6 +6,7 @@ export interface FileItem {
   relativeRoute: string;
   idFolder: string;
   checksum: string;
+  sizeBytes: number;
   lastSync: Date;
 }
 
@@ -14,6 +15,7 @@ interface RawFileItem {
   relativeRoute: string;
   idFolder: string;
   checksum: string;
+  sizeBytes: number;
   lastSync: string;
 }
 
@@ -34,17 +36,30 @@ export function addFileItem(item: Omit<FileItem, 'id' | 'lastSync'>): FileItem {
   };
 
   const stmt = db.prepare(
-    'INSERT INTO file_items (id, relativeRoute, idFolder, checksum, lastSync) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO file_items (id, relativeRoute, idFolder, checksum, sizeBytes, lastSync) VALUES (?, ?, ?, ?, ?, ?)'
   );
-  stmt.run(newItem.id, newItem.relativeRoute, newItem.idFolder, newItem.checksum, newItem.lastSync.toISOString());
+  stmt.run(
+    newItem.id,
+    newItem.relativeRoute,
+    newItem.idFolder,
+    newItem.checksum,
+    newItem.sizeBytes,
+    newItem.lastSync.toISOString()
+  );
   return newItem;
 }
 
 export function updateFileItem(item: FileItem): void {
   const stmt = db.prepare(
-    'UPDATE file_items SET relativeRoute = ?, checksum = ?, lastSync = ? WHERE id = ?'
+    'UPDATE file_items SET relativeRoute = ?, checksum = ?, sizeBytes = ?, lastSync = ? WHERE id = ?'
   );
-  const info = stmt.run(item.relativeRoute, item.checksum, item.lastSync.toISOString(), item.id);
+  const info = stmt.run(
+    item.relativeRoute,
+    item.checksum,
+    item.sizeBytes,
+    item.lastSync.toISOString(),
+    item.id
+  );
 
   if (info.changes === 0) {
     throw new Error(`FileItem with id ${item.id} not found.`);
