@@ -5,6 +5,7 @@ import micromatch from 'micromatch';
 import { getFolders, updateFolder, Folder } from './folderStore';
 import { getFileItemsByFolder, addFileItem, updateFileItem, removeFileItem, FileItem } from './fileItemStore';
 import { getSettings } from './settingsStore';
+import { calculateFolderChecksum } from './checksum';
 
 // Helper function to calculate checksum
 function calculateChecksum(filePath: string): string {
@@ -77,11 +78,14 @@ export async function syncFolder(folderId: string): Promise<void> {
     }
   }
 
+  const checksum = calculateFolderChecksum(folderId);
+
   const updatedFolder: Folder = {
     ...folder,
     totalBytes,
     countFiles: scannedFiles.size,
     lastSync: new Date(),
+    checksum,
   };
   updateFolder(updatedFolder);
 }

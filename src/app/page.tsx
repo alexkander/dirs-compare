@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import path from 'path';
 import { Folder } from '../lib/folderStore';
-import { formatBytes } from '../lib/formatters';
+import { formatBytes, formatChecksum } from '../lib/formatters';
+
 import AddFolderForm from '../components/AddFolderForm';
 
 export default function Home() {
@@ -49,6 +50,8 @@ export default function Home() {
     }
     return sortableItems;
   }, [folders, sortConfig]);
+
+  console.log({sortedFolders})
 
   const requestSort = (key: keyof Folder | 'name' | 'path') => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -126,6 +129,10 @@ export default function Home() {
                   Total Size {sortConfig?.key === 'totalBytes' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('countFiles')}>
+Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+</th>
+<th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('checksum')}>
+Checksum {sortConfig?.key === 'checksum' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                   Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Exclude Patterns</th>
@@ -147,6 +154,7 @@ export default function Home() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.lastSync?.toLocaleString() ?? ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.totalBytes != null ? formatBytes(folder.totalBytes) : ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
+<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <div className="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={folder.excludePatterns.join(', ')}>
                         {folder.excludePatterns.join(', ')}
@@ -166,7 +174,7 @@ export default function Home() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-400">
                     No folders found.
                   </td>
                 </tr>

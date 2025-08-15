@@ -18,7 +18,8 @@ db.exec(`
     lastSync TEXT,
     excludePatterns TEXT NOT NULL DEFAULT '[]',
     totalBytes INTEGER,
-    countFiles INTEGER
+    countFiles INTEGER,
+    checksum TEXT
   );
 
   CREATE TABLE IF NOT EXISTS file_items (
@@ -68,4 +69,8 @@ if (!columns.some(c => c.name === 'totalBytes')) {
 
 if (!columns.some(c => c.name === 'countFiles')) {
   db.exec('ALTER TABLE folders ADD COLUMN countFiles INTEGER');
+}
+
+if (!columns.some(c => c.name === 'checksum')) {
+  db.exec('ALTER TABLE folders ADD COLUMN checksum TEXT');
 }
