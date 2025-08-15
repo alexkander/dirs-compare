@@ -5,6 +5,7 @@ export interface Folder {
   id: string;
   absoluteRoute: string;
   lastSync: Date | null;
+  excludePatterns: string[];
 }
 
 // Type for raw folder data from the database
@@ -12,6 +13,7 @@ interface RawFolder {
   id: string;
   absoluteRoute: string;
   lastSync: string | null;
+  excludePatterns: string;
 }
 
 export async function getFolders(): Promise<Folder[]> {
@@ -20,6 +22,7 @@ export async function getFolders(): Promise<Folder[]> {
   return rawFolders.map(folder => ({
     ...folder,
     lastSync: folder.lastSync ? new Date(folder.lastSync) : null,
+    excludePatterns: JSON.parse(folder.excludePatterns),
   }));
 }
 
@@ -28,17 +31,19 @@ export async function addFolder(absoluteRoute: string): Promise<Folder> {
     id: uuidv4(),
     absoluteRoute,
     lastSync: null,
+    excludePatterns: [],
   };
 
-  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, lastSync) VALUES (?, ?, ?)');
-  stmt.run(newFolder.id, newFolder.absoluteRoute, newFolder.lastSync);
+  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, lastSync, excludePatterns) VALUES (?, ?, ?, ?)');
+  stmt.run(newFolder.id, newFolder.absoluteRoute, newFolder.lastSync, JSON.stringify(newFolder.excludePatterns));
   return newFolder;
 }
 
 export async function updateFolder(updatedFolder: Folder): Promise<void> {
-  const stmt = db.prepare('UPDATE folders SET absoluteRoute = ?, lastSync = ? WHERE id = ?');
+  const stmt = db.prepare('UPDATE folders SET absoluteRoute = ?, lastSync = ?, excludePatterns = ? WHERE id = ?');
   const lastSyncValue = updatedFolder.lastSync instanceof Date ? updatedFolder.lastSync.toISOString() : null;
-  const info = stmt.run(updatedFolder.absoluteRoute, lastSyncValue, updatedFolder.id);
+  const excludePatternsValue = JSON.stringify(updatedFolder.excludePatterns);
+  const info = stmt.run(updatedFolder.absoluteRoute, lastSyncValue, excludePatternsValue, updatedFolder.id);
 
   if (info.changes === 0) {
     throw new Error(`Folder with id ${updatedFolder.id} not found.`);

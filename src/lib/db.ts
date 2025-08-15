@@ -10,12 +10,13 @@ if (!fs.existsSync(dataDir)) {
 const dbPath = path.join(dataDir, 'data.db');
 export const db = new Database(dbPath);
 
-// Create the folders table if it doesn't exist
+// Create tables if they don't exist
 db.exec(`
   CREATE TABLE IF NOT EXISTS folders (
     id TEXT PRIMARY KEY,
     absoluteRoute TEXT NOT NULL,
-    lastSync TEXT
+    lastSync TEXT,
+    excludePatterns TEXT NOT NULL DEFAULT '[]'
   );
 
   CREATE TABLE IF NOT EXISTS file_items (
@@ -27,3 +28,14 @@ db.exec(`
     FOREIGN KEY (idFolder) REFERENCES folders (id) ON DELETE CASCADE
   );
 `);
+
+// Add excludePatterns column to folders table if it doesn't exist (for existing databases)
+interface ColumnInfo {
+  name: string;
+}
+const tableInfo = db.prepare(`PRAGMA table_info(folders)`).all() as ColumnInfo[];
+const columnExists = tableInfo.some((col) => col.name === 'excludePatterns');
+
+if (!columnExists) {
+  db.exec(`ALTER TABLE folders ADD COLUMN excludePatterns TEXT NOT NULL DEFAULT '[]'`);
+}
