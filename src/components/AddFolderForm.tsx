@@ -16,20 +16,23 @@ export default function AddFolderForm() {
   }
 
   return (
-    <form ref={formRef} action={handleSubmit} className="flex items-center gap-4 mb-8">
-      <input
-        type="text"
-        name="absoluteRoute"
-        placeholder="Enter folder path"
-        required
-        className="border border-gray-300 rounded-md px-4 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <button
-        type="submit"
-        className="bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
-      >
-        Add Folder
-      </button>
-    </form>
+    <div className="mb-8 p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold mb-4 text-white">Add New Folder</h2>
+      <form ref={formRef} action={handleSubmit} className="flex items-center gap-4">
+        <input
+          type="text"
+          name="absoluteRoute"
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="/path/to/your/folder"
+          required
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-500"
+        >
+          Add Folder
+        </button>
+      </form>
+    </div>
   );
 }

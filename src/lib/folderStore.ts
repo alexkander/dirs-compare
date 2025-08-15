@@ -39,6 +39,21 @@ export async function addFolder(absoluteRoute: string): Promise<Folder> {
   return newFolder;
 }
 
+export async function getFolderById(id: string): Promise<Folder | null> {
+  const stmt = db.prepare('SELECT * FROM folders WHERE id = ?');
+  const rawFolder = stmt.get(id) as RawFolder | undefined;
+
+  if (!rawFolder) {
+    return null;
+  }
+
+  return {
+    ...rawFolder,
+    lastSync: rawFolder.lastSync ? new Date(rawFolder.lastSync) : null,
+    excludePatterns: JSON.parse(rawFolder.excludePatterns),
+  };
+}
+
 export async function updateFolder(updatedFolder: Folder): Promise<void> {
   const stmt = db.prepare('UPDATE folders SET absoluteRoute = ?, lastSync = ?, excludePatterns = ? WHERE id = ?');
   const lastSyncValue = updatedFolder.lastSync instanceof Date ? updatedFolder.lastSync.toISOString() : null;
