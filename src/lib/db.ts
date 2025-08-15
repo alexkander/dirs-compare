@@ -16,7 +16,9 @@ db.exec(`
     id TEXT PRIMARY KEY,
     absoluteRoute TEXT NOT NULL,
     lastSync TEXT,
-    excludePatterns TEXT NOT NULL DEFAULT '[]'
+    excludePatterns TEXT NOT NULL DEFAULT '[]',
+    totalBytes INTEGER,
+    countFiles INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS file_items (
@@ -41,13 +43,21 @@ try {
   // Ignore error if column doesn't exist or is already renamed
 }
 
-// Add excludePatterns column to folders table if it doesn't exist (for existing databases)
+// Add excludePatterns, totalBytes and countFiles columns to folders table if they don't exist (for existing databases)
 interface ColumnInfo {
   name: string;
 }
 const tableInfo = db.prepare(`PRAGMA table_info(folders)`).all() as ColumnInfo[];
-const columnExists = tableInfo.some((col) => col.name === 'excludePatterns');
+const columns = tableInfo;
 
-if (!columnExists) {
-  db.exec(`ALTER TABLE folders ADD COLUMN excludePatterns TEXT NOT NULL DEFAULT '[]'`);
+if (!columns.some(c => c.name === 'excludePatterns')) {
+  db.exec('ALTER TABLE folders ADD COLUMN excludePatterns TEXT NOT NULL DEFAULT \'[]\'');
+}
+
+if (!columns.some(c => c.name === 'totalBytes')) {
+  db.exec('ALTER TABLE folders ADD COLUMN totalBytes INTEGER');
+}
+
+if (!columns.some(c => c.name === 'countFiles')) {
+  db.exec('ALTER TABLE folders ADD COLUMN countFiles INTEGER');
 }

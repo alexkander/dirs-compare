@@ -6,6 +6,8 @@ export interface Folder {
   absoluteRoute: string;
   lastSync: Date | null;
   excludePatterns: string[];
+  totalBytes: number | null;
+  countFiles: number | null;
 }
 
 // Type for raw folder data from the database
@@ -14,6 +16,8 @@ interface RawFolder {
   absoluteRoute: string;
   lastSync: string | null;
   excludePatterns: string;
+  totalBytes: number | null;
+  countFiles: number | null;
 }
 
 export async function getFolders(): Promise<Folder[]> {
@@ -32,10 +36,12 @@ export async function addFolder(absoluteRoute: string): Promise<Folder> {
     absoluteRoute,
     lastSync: null,
     excludePatterns: [],
+    totalBytes: null,
+    countFiles: null,
   };
 
-  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, lastSync, excludePatterns) VALUES (?, ?, ?, ?)');
-  stmt.run(newFolder.id, newFolder.absoluteRoute, newFolder.lastSync, JSON.stringify(newFolder.excludePatterns));
+  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, lastSync, excludePatterns, totalBytes, countFiles) VALUES (?, ?, ?, ?, ?, ?)');
+  stmt.run(newFolder.id, newFolder.absoluteRoute, newFolder.lastSync, JSON.stringify(newFolder.excludePatterns), newFolder.totalBytes, newFolder.countFiles);
   return newFolder;
 }
 

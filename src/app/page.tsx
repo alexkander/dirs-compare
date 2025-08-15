@@ -1,5 +1,6 @@
 import { getFolders, Folder } from "../lib/folderStore";
 import AddFolderForm from "../components/AddFolderForm";
+import { formatBytes } from "../lib/formatters";
 
 export default async function Home() {
   const folders: Folder[] = await getFolders();
@@ -22,8 +23,10 @@ export default async function Home() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Absolute Route</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Last Sync</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total Size</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Files</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Excluded Patterns</th>
-                <th>Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -32,20 +35,22 @@ export default async function Home() {
                   <tr key={folder.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100">{folder.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.absoluteRoute}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.lastSync ? folder.lastSync.toLocaleString() : 'Never'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.lastSync?.toLocaleString() ?? ''}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{formatBytes(folder.totalBytes)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles?.toLocaleString() ?? ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <div className="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={folder.excludePatterns.join(', ')}>
-                        {folder.excludePatterns.length > 0 ? folder.excludePatterns.join(', ') : 'None'}
+                        {folder.excludePatterns.join(', ')}
                       </div>
                     </td>
-                    <td>
-                      <a href={`/folders/${folder.id}/edit`} className="text-blue-500 hover:underline">Edit</a>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <a href={`/folders/${folder.id}/edit`} className="text-blue-500 hover:underline">Exclusion</a>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-400">
                     No folders found.
                   </td>
                 </tr>
