@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import path from 'path';
 import { Folder } from '../lib/folderStore';
 import { formatBytes } from '../lib/formatters';
 import AddFolderForm from '../components/AddFolderForm';
@@ -9,6 +10,49 @@ import AddFolderForm from '../components/AddFolderForm';
 export default function Home() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Folder | 'name' | 'path'; direction: 'ascending' | 'descending' } | null>(null);
+
+  const sortedFolders = useMemo(() => {
+    const sortableItems = [...folders];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        // Using any for generic sort function
+        let aValue: any;
+        let bValue: any;
+
+        if (sortConfig.key === 'name') {
+          aValue = path.basename(a.absoluteRoute);
+          bValue = path.basename(b.absoluteRoute);
+        } else if (sortConfig.key === 'path') {
+          aValue = path.dirname(a.absoluteRoute);
+          bValue = path.dirname(b.absoluteRoute);
+        } else {
+          aValue = a[sortConfig.key as keyof Folder];
+          bValue = b[sortConfig.key as keyof Folder];
+        }
+
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [folders, sortConfig]);
+
+  const requestSort = (key: keyof Folder | 'name' | 'path') => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const fetchFolders = async () => {
     try {
@@ -63,24 +107,38 @@ export default function Home() {
         <AddFolderForm />
         <div className="overflow-x-auto mt-8">
           <table className="min-w-full bg-gray-800 border border-gray-700">
-            <thead className="bg-gray-700">
+                        <thead className="bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Path</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Last Sync</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total Size</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Files</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('name')}>
+                  Name {sortConfig?.key === 'name' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('path')}>
+                  Path {sortConfig?.key === 'path' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('lastSync')}>
+                  Last Sync {sortConfig?.key === 'lastSync' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('totalBytes')}>
+                  Total Size {sortConfig?.key === 'totalBytes' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('countFiles')}>
+                  Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Exclude Patterns</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
               {folders.length > 0 ? (
-                folders.map((folder) => (
+                sortedFolders.map((folder) => (
                   <tr key={folder.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       <Link href={`/folders/${folder.id}`} className="text-blue-400 hover:underline">
-                        {folder.absoluteRoute}
+                        {path.basename(folder.absoluteRoute)}
                       </Link>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {path.dirname(folder.absoluteRoute)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.lastSync?.toLocaleString() ?? ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.totalBytes != null ? formatBytes(folder.totalBytes) : ''}</td>
