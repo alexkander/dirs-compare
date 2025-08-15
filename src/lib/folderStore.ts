@@ -21,13 +21,13 @@ interface RawFolder {
   countFiles: number | null;
 }
 
-export async function addFolder(absoluteRoute: string): Promise<void> {
+export function addFolder(absoluteRoute: string): void {
   const id = uuidv4();
   const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles) VALUES (?, ?, ?, ?, ?)');
   stmt.run(id, absoluteRoute, '[]', 0, 0);
 }
 
-export async function getFolders(): Promise<Folder[]> {
+export function getFolders(): Folder[] {
   const stmt = db.prepare('SELECT * FROM folders ORDER BY absoluteRoute ASC');
   const rawFolders = stmt.all() as RawFolder[];
   return rawFolders.map(folder => ({
@@ -39,7 +39,7 @@ export async function getFolders(): Promise<Folder[]> {
   }));
 }
 
-export async function getFolderById(id: string): Promise<Folder | null> {
+export function getFolderById(id: string): Folder | null {
   const stmt = db.prepare('SELECT * FROM folders WHERE id = ?');
   const row = stmt.get(id) as RawFolder | undefined;
   if (!row) return null;
@@ -55,7 +55,7 @@ export async function getFolderById(id: string): Promise<Folder | null> {
   };
 }
 
-export async function updateFolder(updatedFolder: Folder): Promise<void> {
+export function updateFolder(updatedFolder: Folder): void {
   const stmt = db.prepare(
     'UPDATE folders SET lastSync = ?, totalBytes = ?, countFiles = ?, excludePatterns = ? WHERE id = ?'
   );
@@ -73,7 +73,7 @@ export async function updateFolder(updatedFolder: Folder): Promise<void> {
   }
 }
 
-export async function removeFolder(id: string): Promise<void> {
+export function removeFolder(id: string): void {
   const stmt = db.prepare('DELETE FROM folders WHERE id = ?');
   const info = stmt.run(id);
   if (info.changes === 0) {

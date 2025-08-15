@@ -17,8 +17,8 @@ export default function Home() {
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         // Using any for generic sort function
-        let aValue: any;
-        let bValue: any;
+        let aValue: string | number | Date | string[] | null | undefined;
+        let bValue: string | number | Date | string[] | null | undefined;
 
         if (sortConfig.key === 'name') {
           aValue = path.basename(a.absoluteRoute);
@@ -33,6 +33,10 @@ export default function Home() {
 
         if (aValue == null) return 1;
         if (bValue == null) return -1;
+
+        // Handle array comparison by converting to string
+        if (Array.isArray(aValue)) aValue = aValue.join(', ');
+        if (Array.isArray(bValue)) bValue = bValue.join(', ');
 
         if (aValue < bValue) {
           return sortConfig.direction === 'ascending' ? -1 : 1;

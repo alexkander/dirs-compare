@@ -1,3 +1,10 @@
+export function formatChecksum(checksum: string | null | undefined, length = 8): string {
+  if (!checksum) {
+    return '';
+  }
+  return checksum.substring(0, length);
+}
+
 export function formatBytes(bytes: number | null | undefined, decimals = 2): string {
   if (bytes === null || bytes === undefined) return '';
   if (bytes === 0) return '0 Bytes';
