@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Folder } from '../../lib/folderStore';
 import { FileItem } from '../../lib/fileItemStore';
 import { formatBytes, formatChecksum } from '../../lib/formatters';
@@ -50,14 +51,45 @@ const AddFolderToCompare = ({ allFolders, onAddFolder, selectedFolderIds }: { al
   );
 };
 
-import { useMemo } from 'react';
 
-const CompareFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes }: { folder: Folder, fileItems: FileItem[], unifiedFileRoutes: string[], matchingChecksumRoutes: Set<string>, mismatchedChecksumRoutes: Set<string> }) => {
+
+const CompareFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes, onRemove }: { folder: Folder, fileItems: FileItem[], unifiedFileRoutes: string[], matchingChecksumRoutes: Set<string>, mismatchedChecksumRoutes: Set<string>, onRemove: (folderId: string) => void }) => {
+    const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId: folder.id }),
+      });
+      if (!response.ok) {
+        throw new Error('Sync failed');
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error('An error occurred during sync:', error);
+      alert('Sync failed');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   const fileItemsByRoute = useMemo(() => new Map(fileItems.map(item => [item.relativeRoute, item])), [fileItems]);
   return (
     <div className="flex-1 min-w-[400px] bg-gray-800 rounded-lg border border-gray-700">
       <div>
-        <h3 className="text-lg font-bold text-white mb-1 truncate px-4 pt-4" title={folder.absoluteRoute}>{path.basename(folder.absoluteRoute)}</h3>
+        <div className="flex justify-between items-center pr-4">
+          <h3 className="text-lg font-bold text-white mb-1 truncate px-4 pt-4" title={folder.absoluteRoute}>{path.basename(folder.absoluteRoute)}</h3>
+          <button onClick={() => onRemove(folder.id)} className="text-red-500 hover:text-red-400 text-xs">Remove</button>
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600"
+          >
+            {isSyncing ? 'Syncing...' : 'Sync'}
+          </button>
+        </div>
         <div className="px-4 mb-2">
           <p className="text-xs text-gray-400 truncate" title={folder.absoluteRoute}>
             {folder.absoluteRoute}
@@ -116,9 +148,14 @@ const CompareFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChe
 };
 
 export default function ComparePage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [allFolders, setAllFolders] = useState<Folder[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Folder[]>([]);
   const [fileItemsMap, setFileItemsMap] = useState<Record<string, FileItem[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   const { unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes } = useMemo((): { unifiedFileRoutes: string[]; matchingChecksumRoutes: Set<string>; mismatchedChecksumRoutes: Set<string> } => {
     const numSelectedFolders = selectedFolders.length;
@@ -157,7 +194,7 @@ export default function ComparePage() {
     return { unifiedFileRoutes: sortedRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes };
   }, [fileItemsMap, selectedFolders]);
 
-  useEffect(() => {
+    useEffect(() => {
     const fetchFolders = async () => {
       try {
         const response = await fetch('/api/folders');
@@ -166,18 +203,51 @@ export default function ComparePage() {
         setAllFolders(data);
       } catch (error) {
         console.error(error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchFolders();
   }, []);
 
-  const handleAddFolder = async (folderId: string) => {
+  useEffect(() => {
+    if (allFolders.length > 0) {
+      const folderIdsFromUrl = searchParams.get('folders')?.split(',').filter(id => id) || [];
+      const currentSelectedIds = selectedFolders.map(f => f.id);
+
+      if (JSON.stringify(folderIdsFromUrl) !== JSON.stringify(currentSelectedIds)) {
+        const foldersToSelect = allFolders.filter(f => folderIdsFromUrl.includes(f.id));
+        setSelectedFolders(foldersToSelect);
+        setFileItemsMap({}); // Reset file items
+        foldersToSelect.forEach(async (folder) => {
+          const items = await getFileItemsForFolder(folder.id);
+          setFileItemsMap(prev => ({ ...prev, [folder.id]: items }));
+        });
+      }
+    }
+  }, [allFolders, searchParams, selectedFolders]);
+
+    const updateUrlWithFolderIds = (folderIds: string[]) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    if (folderIds.length > 0) {
+      newSearchParams.set('folders', folderIds.join(','));
+    } else {
+      newSearchParams.delete('folders');
+    }
+    router.push(`${pathname}?${newSearchParams.toString()}`);
+  };
+
+  const handleAddFolder = (folderId: string) => {
     const folderToAdd = allFolders.find(f => f.id === folderId);
     if (folderToAdd && !selectedFolders.some(f => f.id === folderId)) {
-      setSelectedFolders(prev => [...prev, folderToAdd]);
-      const items = await getFileItemsForFolder(folderId);
-      setFileItemsMap(prev => ({ ...prev, [folderId]: items }));
+      const newSelectedIds = [...selectedFolders.map(f => f.id), folderId];
+      updateUrlWithFolderIds(newSelectedIds);
     }
+  };
+
+  const handleRemoveFolder = (folderId: string) => {
+    const newSelectedIds = selectedFolders.map(f => f.id).filter(id => id !== folderId);
+    updateUrlWithFolderIds(newSelectedIds);
   };
 
   return (
@@ -195,17 +265,18 @@ export default function ComparePage() {
 
       <main className="flex overflow-x-auto pb-4">
         {selectedFolders.map(folder => (
-          <CompareFolderColumn 
+                    <CompareFolderColumn 
             key={folder.id} 
             folder={folder} 
             fileItems={fileItemsMap[folder.id] || []}
             unifiedFileRoutes={unifiedFileRoutes}
             matchingChecksumRoutes={matchingChecksumRoutes}
             mismatchedChecksumRoutes={mismatchedChecksumRoutes}
+            onRemove={handleRemoveFolder}
           />
         ))}
 
-        {selectedFolders.length === 0 && (
+                {selectedFolders.length === 0 && !isLoading && (
             <div className="w-full text-center py-16 bg-gray-800 rounded-lg border-2 border-dashed border-gray-700">
                 <p className="text-gray-400">Search for and add folders to begin comparison.</p>
             </div>
