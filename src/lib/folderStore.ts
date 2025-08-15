@@ -1,75 +1,55 @@
-import fs from 'fs/promises';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-
-const foldersFilePath = path.join(process.cwd(), 'folders.json');
+import { db } from './db';
 
 export interface Folder {
   id: string;
-  route: string;
+  absoluteRoute: string;
   lastSync: Date | null;
 }
 
-interface FolderData {
-  folders: Folder[];
-}
-
-async function readFolders(): Promise<Folder[]> {
-  try {
-    const data = await fs.readFile(foldersFilePath, 'utf-8');
-    const jsonData: FolderData = JSON.parse(data);
-    if (jsonData.folders) {
-        return jsonData.folders.map(folder => ({
-            ...folder,
-            lastSync: folder.lastSync ? new Date(folder.lastSync) : null
-        }));
-    }
-    return [];
-  } catch (error) {
-    if (error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return [];
-    }
-    throw error;
-  }
-}
-
-async function saveFolders(folders: Folder[]): Promise<void> {
-  const data: FolderData = { folders };
-  await fs.writeFile(foldersFilePath, JSON.stringify(data, null, 2), 'utf-8');
-}
-
-export async function addFolder(route: string): Promise<Folder> {
-    const folders = await readFolders();
-    const newFolder: Folder = {
-        id: uuidv4(),
-        route,
-        lastSync: null
-    };
-    folders.push(newFolder);
-    await saveFolders(folders);
-    return newFolder;
+// Type for raw folder data from the database
+interface RawFolder {
+  id: string;
+  absoluteRoute: string;
+  lastSync: string | null;
 }
 
 export async function getFolders(): Promise<Folder[]> {
-    return readFolders();
+  const stmt = db.prepare('SELECT * FROM folders');
+  const rawFolders = stmt.all() as RawFolder[];
+  return rawFolders.map(folder => ({
+    ...folder,
+    lastSync: folder.lastSync ? new Date(folder.lastSync) : null,
+  }));
+}
+
+export async function addFolder(absoluteRoute: string): Promise<Folder> {
+  const newFolder: Folder = {
+    id: uuidv4(),
+    absoluteRoute,
+    lastSync: null,
+  };
+
+  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, lastSync) VALUES (?, ?, ?)');
+  stmt.run(newFolder.id, newFolder.absoluteRoute, newFolder.lastSync);
+  return newFolder;
 }
 
 export async function updateFolder(updatedFolder: Folder): Promise<void> {
-    const folders = await readFolders();
-    const index = folders.findIndex(f => f.id === updatedFolder.id);
-    if (index !== -1) {
-        folders[index] = updatedFolder;
-        await saveFolders(folders);
-    } else {
-        throw new Error(`Folder with id ${updatedFolder.id} not found.`);
-    }
+  const stmt = db.prepare('UPDATE folders SET absoluteRoute = ?, lastSync = ? WHERE id = ?');
+  const lastSyncValue = updatedFolder.lastSync instanceof Date ? updatedFolder.lastSync.toISOString() : null;
+  const info = stmt.run(updatedFolder.absoluteRoute, lastSyncValue, updatedFolder.id);
+
+  if (info.changes === 0) {
+    throw new Error(`Folder with id ${updatedFolder.id} not found.`);
+  }
 }
 
 export async function removeFolder(id: string): Promise<void> {
-    const folders = await readFolders();
-    const filteredFolders = folders.filter(f => f.id !== id);
-    if (folders.length === filteredFolders.length) {
-        throw new Error(`Folder with id ${id} not found.`);
-    }
-    await saveFolders(filteredFolders);
+  const stmt = db.prepare('DELETE FROM folders WHERE id = ?');
+  const info = stmt.run(id);
+
+  if (info.changes === 0) {
+    throw new Error(`Folder with id ${id} not found.`);
+  }
 }

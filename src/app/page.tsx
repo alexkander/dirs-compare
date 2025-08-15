@@ -17,7 +17,7 @@ export default async function Home() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Absolute Route</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sync</th>
               </tr>
             </thead>
@@ -26,7 +26,7 @@ export default async function Home() {
                 folders.map((folder) => (
                   <tr key={folder.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{folder.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{folder.route}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{folder.absoluteRoute}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{folder.lastSync ? folder.lastSync.toLocaleString() : 'Never'}</td>
                   </tr>
                 ))

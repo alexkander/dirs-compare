@@ -19,7 +19,7 @@ export default function AddFolderForm() {
     <form ref={formRef} action={handleSubmit} className="flex items-center gap-4 mb-8">
       <input
         type="text"
-        name="route"
+        name="absoluteRoute"
         placeholder="Enter folder path"
         required
         className="border border-gray-300 rounded-md px-4 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500"
