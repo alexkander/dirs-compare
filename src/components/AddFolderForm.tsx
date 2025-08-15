@@ -26,6 +26,17 @@ export default function AddFolderForm() {
           placeholder="/path/to/your/folder"
           required
         />
+        <div className="flex items-center">
+          <input
+            id="add-subdirectories"
+            name="addSubdirectories"
+            type="checkbox"
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <label htmlFor="add-subdirectories" className="ml-2 block text-sm text-gray-300">
+            agregar subdirectorios
+          </label>
+        </div>
         <button
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-500"
