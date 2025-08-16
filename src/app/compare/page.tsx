@@ -23,7 +23,6 @@ const getFileItemsForFolder = async (folderId: string): Promise<FileItem[]> => {
   }
 };
 
-
 const AddFolderToCompare = ({ allFolders, onAddFolder, selectedFolderIds }: { allFolders: Folder[], onAddFolder: (folderId: string) => void, selectedFolderIds: string[] }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -82,14 +81,16 @@ const CompareFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChe
       <div>
         <div className="flex justify-between items-center pr-4">
           <h3 className="text-lg font-bold text-white mb-1 truncate px-4 pt-4" title={folder.absoluteRoute}>{path.basename(folder.absoluteRoute)}</h3>
-          <button onClick={() => onRemove(folder.id)} className="text-red-500 hover:text-red-400 text-xs">Remove</button>
-          <button
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600"
-          >
-            {isSyncing ? 'Syncing...' : 'Sync'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600"
+            >
+              {isSyncing ? 'Syncing...' : 'Sync'}
+            </button>
+            <button onClick={() => onRemove(folder.id)} className="text-red-500 hover:text-red-400 text-xs">Remove</button>
+          </div>
         </div>
         <div className="px-4 mb-2">
           <p className="text-xs text-gray-400 truncate" title={folder.absoluteRoute}>
@@ -161,7 +162,7 @@ export default function ComparePage() {
   const { unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes } = useMemo((): { unifiedFileRoutes: string[]; matchingChecksumRoutes: Set<string>; mismatchedChecksumRoutes: Set<string> } => {
     const numSelectedFolders = selectedFolders.length;
     if (numSelectedFolders < 2) {
-      const allRoutes = new Set(Object.values(fileItemsMap).flat().map(item => item.relativeRoute));
+      const allRoutes = new Set(Object.values({...fileItemsMap}).flat().map(item => item.relativeRoute));
       const sortedRoutes = Array.from(allRoutes).sort((a, b) => a.localeCompare(b));
       return { unifiedFileRoutes: sortedRoutes, matchingChecksumRoutes: new Set(), mismatchedChecksumRoutes: new Set() };
     }
@@ -191,11 +192,11 @@ export default function ComparePage() {
         }
       }
     }
-
+    
     return { unifiedFileRoutes: sortedRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes };
   }, [fileItemsMap, selectedFolders]);
 
-    useEffect(() => {
+  useEffect(() => {
     const fetchFolders = async () => {
       try {
         const response = await fetch('/api/folders');
@@ -213,22 +214,30 @@ export default function ComparePage() {
 
   useEffect(() => {
     if (allFolders.length > 0) {
-      const folderIdsFromUrl = searchParams.get('folders')?.split(',').filter(id => id) || [];
+      const folderIdsFromUrl = searchParams.get('folders')?.split(',').filter(Boolean) || [];
       const currentSelectedIds = selectedFolders.map(f => f.id);
 
       if (JSON.stringify(folderIdsFromUrl) !== JSON.stringify(currentSelectedIds)) {
         const foldersToSelect = allFolders.filter(f => folderIdsFromUrl.includes(f.id));
         setSelectedFolders(foldersToSelect);
-        setFileItemsMap({}); // Reset file items
-        foldersToSelect.forEach(async (folder) => {
-          const items = await getFileItemsForFolder(folder.id);
-          setFileItemsMap(prev => ({ ...prev, [folder.id]: items }));
-        });
       }
     }
   }, [allFolders, searchParams, selectedFolders]);
 
-    const updateUrlWithFolderIds = (folderIds: string[]) => {
+  useEffect(() => {
+    const fetchFileItems = async () => {
+      const newFileItemsMap: Record<string, FileItem[]> = {};
+      const promises = selectedFolders.map(async (folder) => {
+        const items = await getFileItemsForFolder(folder.id);
+        newFileItemsMap[folder.id] = items;
+      });
+      await Promise.all(promises);
+      setFileItemsMap(newFileItemsMap);
+    };
+    fetchFileItems();
+  }, [selectedFolders]);
+
+  const updateUrlWithFolderIds = (folderIds: string[]) => {
     const newSearchParams = new URLSearchParams(searchParams.toString());
     if (folderIds.length > 0) {
       newSearchParams.set('folders', folderIds.join(','));
@@ -240,19 +249,31 @@ export default function ComparePage() {
 
   const handleAddFolder = (folderId: string) => {
     const folderToAdd = allFolders.find(f => f.id === folderId);
-    if (folderToAdd && !selectedFolders.some(f => f.id === folderId)) {
-      const newSelectedIds = [...selectedFolders.map(f => f.id), folderId];
-      updateUrlWithFolderIds(newSelectedIds);
+    if (folderToAdd) {
+      const newSelectedFolders = [...selectedFolders, folderToAdd];
+      setSelectedFolders(newSelectedFolders);
+      
+      const newFolderIds = newSelectedFolders.map(f => f.id);
+      updateUrlWithFolderIds(newFolderIds);
     }
   };
 
   const handleRemoveFolder = (folderId: string) => {
-    const newSelectedIds = selectedFolders.map(f => f.id).filter(id => id !== folderId);
-    updateUrlWithFolderIds(newSelectedIds);
+    const newSelectedFolders = selectedFolders.filter(f => f.id !== folderId);
+    setSelectedFolders(newSelectedFolders);
+    
+    // Update fileItemsMap to remove the deleted folder's files
+    setFileItemsMap(prev => {
+      const newFileItemsMap = { ...prev };
+      delete newFileItemsMap[folderId];
+      return newFileItemsMap;
+    });
+    
+    updateUrlWithFolderIds(newSelectedFolders.map(f => f.id));
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container-fluid mx-auto p-4">
       <Link href="/" className="text-blue-500 hover:underline mb-4 inline-block">
         &larr; Back to Folders
       </Link>
