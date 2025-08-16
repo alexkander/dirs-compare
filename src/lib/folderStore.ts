@@ -26,7 +26,7 @@ interface RawFolder {
 export function addFolder(absoluteRoute: string): void {
   const id = uuidv4();
   const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles, checksum) VALUES (?, ?, ?, ?, ?, ?)');
-  stmt.run(id, absoluteRoute, '[]', 0, 0, null);
+  stmt.run(id, absoluteRoute, '[]', null, null, null);
 }
 
 export function getFolders(): Folder[] {
@@ -37,8 +37,8 @@ export function getFolders(): Folder[] {
     checksum: folder.checksum ?? null,
     excludePatterns: JSON.parse(folder.excludePatterns || '[]'),
     lastSync: folder.lastSync ? new Date(folder.lastSync) : null,
-    totalBytes: folder.totalBytes ?? 0,
-    countFiles: folder.countFiles ?? 0,
+    totalBytes: folder.totalBytes,
+    countFiles: folder.countFiles,
   }));
 }
 
@@ -54,8 +54,8 @@ export function getFolderById(id: string): Folder | null {
     checksum: row.checksum ?? null,
     excludePatterns: JSON.parse(row.excludePatterns || '[]'),
     lastSync: row.lastSync ? new Date(row.lastSync) : null,
-    totalBytes: row.totalBytes ?? 0,
-    countFiles: row.countFiles ?? 0,
+    totalBytes: row.totalBytes,
+    countFiles: row.countFiles,
   };
 }
 
@@ -83,7 +83,7 @@ export function updateFolderChecksum(id: string, checksum: string): void {
   stmt.run(checksum, id);
 }
 
-export function removeFolder(id: string): void {
+export function deleteFolder(id: string): void {
   const stmt = db.prepare('DELETE FROM folders WHERE id = ?');
   const info = stmt.run(id);
   if (info.changes === 0) {

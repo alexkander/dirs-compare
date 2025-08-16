@@ -10,7 +10,8 @@ import AddFolderForm from '../components/AddFolderForm';
 
 export default function Home() {
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
+    const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
+  const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Folder | 'name' | 'path'; direction: 'ascending' | 'descending' } | null>(null);
 
   const sortedFolders = useMemo(() => {
@@ -51,8 +52,6 @@ export default function Home() {
     return sortableItems;
   }, [folders, sortConfig]);
 
-  console.log({sortedFolders})
-
   const requestSort = (key: keyof Folder | 'name' | 'path') => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -77,6 +76,39 @@ export default function Home() {
   useEffect(() => {
     fetchFolders();
   }, []);
+
+  const handleDelete = async (folderId: string) => {
+    if (window.confirm('Are you sure you want to delete this folder and all its associated files? This action cannot be undone.')) {
+      setDeletingFolderId(folderId);
+      try {
+        const response = await fetch(`/api/folders/${folderId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete folder';
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.details || errorData.error || errorMessage;
+            } catch {
+              errorMessage = `Failed to parse error response: ${response.statusText}`;
+            }
+          } else {
+            errorMessage = response.statusText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+        await fetchFolders(); // Refresh folder data after delete
+      } catch (error) {
+        console.error('An error occurred during deletion:', error);
+        alert(`Deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setDeletingFolderId(null);
+      }
+    }
+  };
 
   const handleSync = async (folderId: string) => {
     setSyncingFolderId(folderId);
@@ -118,7 +150,7 @@ export default function Home() {
       </header>
 
       <main>
-        <AddFolderForm />
+        <AddFolderForm onFolderAdded={fetchFolders} />
         <div className="overflow-x-auto mt-8">
           <table className="min-w-full bg-gray-800 border border-gray-700">
                         <thead className="bg-gray-700">
@@ -136,11 +168,10 @@ export default function Home() {
                   Total Size {sortConfig?.key === 'totalBytes' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('countFiles')}>
-Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
-</th>
-<th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('checksum')}>
-Checksum {sortConfig?.key === 'checksum' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
                   Files {sortConfig?.key === 'countFiles' && (sortConfig.direction === 'ascending' ? '▲' : '▼')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer">
+                  Checksum
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
@@ -158,9 +189,9 @@ Checksum {sortConfig?.key === 'checksum' && (sortConfig.direction === 'ascending
                       {path.dirname(folder.absoluteRoute)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.lastSync?.toLocaleString() ?? ''}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.totalBytes != null ? formatBytes(folder.totalBytes) : ''}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{formatBytes(folder.totalBytes)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
-<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-4">
                       <button
                         onClick={() => handleSync(folder.id)}
@@ -169,7 +200,14 @@ Checksum {sortConfig?.key === 'checksum' && (sortConfig.direction === 'ascending
                       >
                         {syncingFolderId === folder.id ? 'Syncing...' : 'Sync'}
                       </button>
-                      <Link href={`/folders/${folder.id}/edit`} className="text-blue-500 hover:underline">Exclusion</Link>
+                                            <Link href={`/folders/${folder.id}/edit`} className="text-blue-500 hover:underline">Exclusion</Link>
+                      <button
+                        onClick={() => handleDelete(folder.id)}
+                        disabled={deletingFolderId === folder.id}
+                        className="text-red-500 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
+                      >
+                        {deletingFolderId === folder.id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))

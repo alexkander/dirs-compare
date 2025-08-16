@@ -269,9 +269,9 @@ export default function ComparePage() {
 
       <main className="flex overflow-x-auto pb-4">
         {selectedFolders.map(folder => (
-                    <CompareFolderColumn 
-            key={folder.id} 
-            folder={folder} 
+          <CompareFolderColumn
+            key={folder.id}
+            folder={folder}
             fileItems={fileItemsMap[folder.id] || []}
             unifiedFileRoutes={unifiedFileRoutes}
             matchingChecksumRoutes={matchingChecksumRoutes}
@@ -280,10 +280,10 @@ export default function ComparePage() {
           />
         ))}
 
-                {selectedFolders.length === 0 && !isLoading && (
-            <div className="w-full text-center py-16 bg-gray-800 rounded-lg border-2 border-dashed border-gray-700">
-                <p className="text-gray-400">Search for and add folders to begin comparison.</p>
-            </div>
+        {selectedFolders.length === 0 && !isLoading && (
+          <div className="w-full text-center py-16 bg-gray-800 rounded-lg border-2 border-dashed border-gray-700">
+            <p className="text-gray-400">Search for and add folders to begin comparison.</p>
+          </div>
         )}
       </main>
     </div>

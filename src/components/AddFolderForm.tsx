@@ -3,15 +3,27 @@
 import { useRef } from 'react';
 import { createFolderAction } from '../app/actions';
 
-export default function AddFolderForm() {
+interface AddFolderFormProps {
+  onFolderAdded?: () => Promise<void>;
+}
+
+export default function AddFolderForm({ onFolderAdded }: AddFolderFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(formData: FormData) {
-    const result = await createFolderAction(formData);
-    if (result?.error) {
-      alert(`Error: ${result.error}`);
-    } else {
-      formRef.current?.reset();
+    try {
+      const result = await createFolderAction(formData);
+      if (result?.error) {
+        alert(`Error: ${result.error}`);
+      } else {
+        formRef.current?.reset();
+        if (onFolderAdded) {
+          await onFolderAdded();
+        }
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      alert('Failed to create folder. Please try again.');
     }
   }
 

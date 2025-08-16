@@ -13,7 +13,7 @@ const schema = z.object({
 export async function createFolderAction(formData: FormData) {
   const parsed = schema.parse({
     absoluteRoute: formData.get('absoluteRoute'),
-    addSubdirectories: formData.get('addSubdirectories'),
+    addSubdirectories: formData.get('addSubdirectories') || undefined,
   });
 
   try {

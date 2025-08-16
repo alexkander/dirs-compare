@@ -66,6 +66,11 @@ export function updateFileItem(item: FileItem): void {
   }
 }
 
+export function deleteFileItemsByFolderId(idFolder: string): void {
+  const stmt = db.prepare('DELETE FROM file_items WHERE idFolder = ?');
+  stmt.run(idFolder);
+}
+
 export function removeFileItem(id: string): void {
   const stmt = db.prepare('DELETE FROM file_items WHERE id = ?');
   const info = stmt.run(id);
