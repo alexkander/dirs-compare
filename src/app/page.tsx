@@ -165,7 +165,7 @@ export default function Home() {
     }
   };
 
-  const handleCompare = (folder: Folder) => {
+  const handleMerge = (folder: Folder) => {
     // Find all folders with the same name as the clicked folder
     const folderName = path.basename(folder.absoluteRoute);
     const matchingFolders = folders.filter(f => 
@@ -173,13 +173,13 @@ export default function Home() {
     );
 
     if (matchingFolders.length === 0) {
-      alert('No other folders with the same name found to compare with.');
+      alert('No other folders with the same name found to merge with.');
       return;
     }
 
     // Create a comma-separated list of folder IDs, with the clicked folder first
     const folderIds = [folder.id, ...matchingFolders.map(f => f.id)];
-    router.push(`/compare?folders=${folderIds.join(',')}`);
+    router.push(`/merge?folders=${folderIds.join(',')}`);
   };
 
   const handleSync = async (folderId: string) => {
@@ -212,8 +212,8 @@ export default function Home() {
           <p className="text-gray-400">A list of your configured folders.</p>
         </div>
         <div className="flex items-center space-x-4">
-          <Link href="/compare" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors">
-            Comparar
+          <Link href="/merge" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors">
+            Merge
           </Link>
           <Link 
             href="/trash" 
@@ -294,11 +294,11 @@ export default function Home() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleCompare(folder);
+                            handleMerge(folder);
                           }}
                           className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                         >
-                          Compare
+                          Merge
                         </button>
                         <button
                           onClick={(e) => {

@@ -23,7 +23,7 @@ const getFileItemsForFolder = async (folderId: string): Promise<FileItem[]> => {
   }
 };
 
-const AddFolderToCompare = ({ allFolders, onAddFolder, selectedFolderIds }: { allFolders: Folder[], onAddFolder: (folderId: string) => void, selectedFolderIds: string[] }) => {
+const AddFolderToMerge = ({ allFolders, onAddFolder, selectedFolderIds }: { allFolders: Folder[], onAddFolder: (folderId: string) => void, selectedFolderIds: string[] }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const availableFolders = allFolders.filter(f => !selectedFolderIds.includes(f.id) && f.absoluteRoute.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -32,7 +32,7 @@ const AddFolderToCompare = ({ allFolders, onAddFolder, selectedFolderIds }: { al
     <div className="mb-8">
       <input
         type="text"
-        placeholder="Search for a folder to compare..."
+        placeholder="Search for a folder to merge..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -53,7 +53,7 @@ const AddFolderToCompare = ({ allFolders, onAddFolder, selectedFolderIds }: { al
 
 
 
-const CompareFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes, onRemove }: { folder: Folder, fileItems: FileItem[], unifiedFileRoutes: string[], matchingChecksumRoutes: Set<string>, mismatchedChecksumRoutes: Set<string>, onRemove: (folderId: string) => void }) => {
+const MergeFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes, onRemove }: { folder: Folder, fileItems: FileItem[], unifiedFileRoutes: string[], matchingChecksumRoutes: Set<string>, mismatchedChecksumRoutes: Set<string>, onRemove: (folderId: string) => void }) => {
     const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -149,7 +149,7 @@ const CompareFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChe
   );
 };
 
-export default function ComparePage() {
+export default function MergePage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -278,11 +278,11 @@ export default function ComparePage() {
         &larr; Back to Folders
       </Link>
       <header className="mb-8">
-        <h1 className="text-3xl font-bold">Compare Folders</h1>
-        <p className="text-gray-400">Select folders to compare their contents side-by-side.</p>
+        <h1 className="text-3xl font-bold">Merge Folders</h1>
+        <p className="text-gray-400">Select folders to merge their contents side-by-side.</p>
       </header>
 
-      <AddFolderToCompare 
+      <AddFolderToMerge 
         allFolders={allFolders} 
         onAddFolder={handleAddFolder} 
         selectedFolderIds={selectedFolders.map(f => f.id)}
@@ -290,7 +290,7 @@ export default function ComparePage() {
 
       <main className="flex overflow-x-auto pb-4">
         {selectedFolders.map(folder => (
-          <CompareFolderColumn
+          <MergeFolderColumn
             key={folder.id}
             folder={folder}
             fileItems={fileItemsMap[folder.id] || []}
