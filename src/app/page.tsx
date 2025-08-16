@@ -15,15 +15,15 @@ export default function Home() {
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
   const [movingToTrashId, setMovingToTrashId] = useState<string | null>(null);
   const [movingToArchiveId, setMovingToArchiveId] = useState<string | null>(null);
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Folder | 'name' | 'path'; direction: 'ascending' | 'descending' } | null>(null);
+  type SortableKey = keyof Omit<Folder, 'merging'> | 'name' | 'path';
+  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' } | null>(null);
 
   const sortedFolders = useMemo(() => {
     const sortableItems = [...folders];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        // Using any for generic sort function
-        let aValue: string | number | Date | string[] | null | undefined;
-        let bValue: string | number | Date | string[] | null | undefined;
+        let aValue: string | number | Date | string[] | boolean | null | undefined;
+        let bValue: string | number | Date | string[] | boolean | null | undefined;
 
         if (sortConfig.key === 'name') {
           aValue = path.basename(a.absoluteRoute);
@@ -36,6 +36,7 @@ export default function Home() {
           bValue = b[sortConfig.key as keyof Folder];
         }
 
+        // Handle null/undefined values
         if (aValue == null) return 1;
         if (bValue == null) return -1;
 
@@ -43,10 +44,14 @@ export default function Home() {
         if (Array.isArray(aValue)) aValue = aValue.join(', ');
         if (Array.isArray(bValue)) bValue = bValue.join(', ');
 
-        if (aValue < bValue) {
+        // Convert values to strings for comparison
+        const aStr = String(aValue);
+        const bStr = String(bValue);
+
+        if (aStr < bStr) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
-        if (aValue > bValue) {
+        if (aStr > bStr) {
           return sortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
@@ -55,7 +60,7 @@ export default function Home() {
     return sortableItems;
   }, [folders, sortConfig]);
 
-  const requestSort = (key: keyof Folder | 'name' | 'path') => {
+  const requestSort = (key: SortableKey) => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
@@ -278,9 +283,16 @@ export default function Home() {
                 sortedFolders.map((folder) => (
                   <tr key={folder.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      <Link href={`/folders/${folder.id}`} className="text-blue-400 hover:underline">
-                        {path.basename(folder.absoluteRoute)}
-                      </Link>
+                      <div className="flex items-center space-x-2">
+                        <Link href={`/folders/${folder.id}`} className="text-blue-400 hover:underline">
+                          {path.basename(folder.absoluteRoute)}
+                        </Link>
+                        {folder.merging && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">
+                            merge
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {path.dirname(folder.absoluteRoute)}

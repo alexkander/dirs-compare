@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSettings } from '@/lib/settingsStore';
-import { addFolder } from '@/lib/folderStore';
+import { addFolder, Folder } from '@/lib/folderStore';
 import { moveFolderToArchive } from '@/app/actions/archive';
 import fs from 'fs/promises';
 import path from 'path';
@@ -138,7 +138,7 @@ export async function PATCH(request: Request) {
     // Re-add the folder to the database if needed
     if (folderData.id) {
       // Recreate the folder in the database
-      await addFolder({
+      const folder: Folder = {
         id: folderData.id,
         absoluteRoute: folderData.absoluteRoute,
         excludePatterns: JSON.parse(folderData.excludePatterns || '[]') as string[],
@@ -146,7 +146,9 @@ export async function PATCH(request: Request) {
         totalBytes: folderData.totalBytes,
         countFiles: folderData.countFiles,
         checksum: folderData.checksum,
-      });
+        merging: folderData.merging || false,
+      };
+      await addFolder(folder);
     }
     
     return NextResponse.json({ success: true });

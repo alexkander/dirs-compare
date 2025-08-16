@@ -149,7 +149,8 @@ export async function PATCH(request: Request) {
       lastSync: folderData.lastSync ? new Date(folderData.lastSync) : null,
       totalBytes: folderData.totalBytes,
       countFiles: folderData.countFiles,
-      checksum: folderData.checksum
+      checksum: folderData.checksum,
+      merging: folderData.merging || false,
     };
 
     console.log({newFolder, folderData})

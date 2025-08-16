@@ -105,3 +105,8 @@ if (!columns.some(c => c.name === 'countFiles')) {
 if (!columns.some(c => c.name === 'checksum')) {
   db.exec('ALTER TABLE folders ADD COLUMN checksum TEXT');
 }
+
+// Migration for folders table: add merging column
+if (!columns.some(c => c.name === 'merging')) {
+  db.exec('ALTER TABLE folders ADD COLUMN merging INTEGER NOT NULL DEFAULT 0');
+}

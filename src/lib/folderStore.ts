@@ -10,6 +10,7 @@ export interface Folder {
   excludePatterns: string[];
   totalBytes: number | null;
   countFiles: number | null;
+  merging: boolean;
 }
 
 // Type for raw folder data from the database
@@ -21,11 +22,12 @@ interface RawFolder {
   totalBytes: number | null;
   countFiles: number | null;
   checksum: string | null;
+  merging: number; // SQLite stores booleans as 0/1
 }
 
 export function addFolder(folder: Partial<Folder>): void {
   const id = folder.id || uuidv4();
-  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles, checksum, lastSync) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles, checksum, lastSync, merging) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   stmt.run(
     id,
     folder.absoluteRoute,
@@ -33,7 +35,8 @@ export function addFolder(folder: Partial<Folder>): void {
     folder.totalBytes,
     folder.countFiles,
     folder.checksum,
-    folder.lastSync?.toISOString()|| null
+    folder.lastSync?.toISOString() || null,
+    folder.merging ? 1 : 0
   );
 }
 
@@ -47,6 +50,7 @@ export function getFolders(): Folder[] {
     lastSync: folder.lastSync ? new Date(folder.lastSync) : null,
     totalBytes: folder.totalBytes,
     countFiles: folder.countFiles,
+    merging: folder.merging === 1,
   }));
 }
 
@@ -64,12 +68,13 @@ export function getFolderById(id: string): Folder | null {
     lastSync: row.lastSync ? new Date(row.lastSync) : null,
     totalBytes: row.totalBytes,
     countFiles: row.countFiles,
+    merging: row.merging === 1,
   };
 }
 
 export function updateFolder(updatedFolder: Folder): void {
   const stmt = db.prepare(
-    'UPDATE folders SET lastSync = ?, totalBytes = ?, countFiles = ?, excludePatterns = ?, checksum = ? WHERE id = ?'
+    'UPDATE folders SET lastSync = ?, totalBytes = ?, countFiles = ?, excludePatterns = ?, checksum = ?, merging = ? WHERE id = ?'
   );
   const lastSyncValue = updatedFolder.lastSync instanceof Date ? updatedFolder.lastSync.toISOString() : null;
   const info = stmt.run(
@@ -78,6 +83,7 @@ export function updateFolder(updatedFolder: Folder): void {
     updatedFolder.countFiles,
     JSON.stringify(updatedFolder.excludePatterns),
     updatedFolder.checksum,
+    updatedFolder.merging ? 1 : 0,
     updatedFolder.id
   );
 

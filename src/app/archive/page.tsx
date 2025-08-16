@@ -95,7 +95,14 @@ export default function ArchivePage() {
                 {archivedFolders.map((folder) => (
                   <tr key={folder.id} className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{folder.name}</div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-white">{folder.name}</span>
+                        {folder.merging && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">
+                            merge
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">{folder.absoluteRoute}</div>

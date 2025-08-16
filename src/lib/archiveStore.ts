@@ -6,6 +6,7 @@ export interface ArchivedFolder {
   totalBytes: number | null;
   countFiles: number | null;
   checksum: string | null;
+  merging: boolean;
   // extra fields
   name: string;
   archivedAt: string;

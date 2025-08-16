@@ -6,6 +6,7 @@ export interface TrashedFolder  {
   totalBytes: number | null;
   countFiles: number | null;
   checksum: string | null;
+  merging: boolean;
   // extra fields
   name: string;
   deletedAt: string;
