@@ -73,6 +73,16 @@ try {
   console.error('Error adding archivedProjectsPath column:', error);
 }
 
+// Migration for settings table: add mergeDirectory
+try {
+  const columns = db.prepare("PRAGMA table_info(settings)").all() as Array<{name: string}>;
+  if (!columns.some(col => col.name === 'mergeDirectory')) {
+    db.exec("ALTER TABLE settings ADD COLUMN mergeDirectory TEXT NOT NULL DEFAULT './merged'");
+  }
+} catch (error) {
+  console.error('Error adding mergeDirectory column:', error);
+}
+
 // Add excludePatterns, totalBytes and countFiles columns to folders table if they don't exist (for existing databases)
 interface ColumnInfo {
   name: string;

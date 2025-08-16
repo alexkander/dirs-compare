@@ -7,14 +7,16 @@ interface UpdateSettingsParams {
   globalExcludePatterns: string[];
   trashDirectory: string;
   archivedProjectsPath: string;
+  mergeDirectory: string;
 }
 
-export async function updateSettingsAction({ globalExcludePatterns, trashDirectory, archivedProjectsPath }: UpdateSettingsParams) {
+export async function updateSettingsAction({ globalExcludePatterns, trashDirectory, archivedProjectsPath, mergeDirectory }: UpdateSettingsParams) {
   try {
     const settings: Settings = {
       globalExcludePatterns,
       trashDirectory,
       archivedProjectsPath,
+      mergeDirectory,
     };
     updateSettings(settings);
     revalidatePath('/settings');

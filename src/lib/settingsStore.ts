@@ -4,21 +4,24 @@ export interface Settings {
   globalExcludePatterns: string[];
   trashDirectory: string;
   archivedProjectsPath: string;
+  mergeDirectory: string;
 }
 
 const defaultSettings: Settings = {
   globalExcludePatterns: ['.git', 'node_modules', 'coverage', 'dist', '.junit', 'build', 'android', 'ios'],
   trashDirectory: './.trash',
   archivedProjectsPath: './.archive',
+  mergeDirectory: './merged',
 };
 
 // This function will always return settings, creating them if they don't exist.
 export function getSettings(): Settings {
-  const stmt = db.prepare('SELECT globalExcludePatterns, trashDirectory, archivedProjectsPath FROM settings WHERE id = 1');
+  const stmt = db.prepare('SELECT globalExcludePatterns, trashDirectory, archivedProjectsPath, mergeDirectory FROM settings WHERE id = 1');
   const row = stmt.get() as { 
     globalExcludePatterns: string, 
     trashDirectory?: string, 
-    archivedProjectsPath?: string 
+    archivedProjectsPath?: string,
+    mergeDirectory?: string
   } | undefined;
 
   if (row) {
@@ -26,16 +29,18 @@ export function getSettings(): Settings {
       globalExcludePatterns: JSON.parse(row.globalExcludePatterns),
       trashDirectory: row.trashDirectory || defaultSettings.trashDirectory,
       archivedProjectsPath: row.archivedProjectsPath || defaultSettings.archivedProjectsPath,
+      mergeDirectory: row.mergeDirectory || defaultSettings.mergeDirectory,
     };
   } else {
     // No settings found, create them with default values
     const insertStmt = db.prepare(
-      'INSERT INTO settings (id, globalExcludePatterns, trashDirectory, archivedProjectsPath) VALUES (1, ?, ?, ?)'
+      'INSERT INTO settings (id, globalExcludePatterns, trashDirectory, archivedProjectsPath, mergeDirectory) VALUES (1, ?, ?, ?, ?)'
     );
     insertStmt.run(
       JSON.stringify(defaultSettings.globalExcludePatterns),
       defaultSettings.trashDirectory,
-      defaultSettings.archivedProjectsPath
+      defaultSettings.archivedProjectsPath,
+      defaultSettings.mergeDirectory
     );
     return defaultSettings;
   }
@@ -43,11 +48,12 @@ export function getSettings(): Settings {
 
 export function updateSettings(settings: Settings): void {
   const stmt = db.prepare(
-    'UPDATE settings SET globalExcludePatterns = ?, trashDirectory = ?, archivedProjectsPath = ? WHERE id = 1'
+    'UPDATE settings SET globalExcludePatterns = ?, trashDirectory = ?, archivedProjectsPath = ?, mergeDirectory = ? WHERE id = 1'
   );
   stmt.run(
     JSON.stringify(settings.globalExcludePatterns),
     settings.trashDirectory,
-    settings.archivedProjectsPath
+    settings.archivedProjectsPath,
+    settings.mergeDirectory
   );
 }

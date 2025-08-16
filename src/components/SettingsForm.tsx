@@ -12,6 +12,7 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
   const [patterns, setPatterns] = useState(settings.globalExcludePatterns);
   const [trashDirectory, setTrashDirectory] = useState(settings.trashDirectory);
   const [archivedProjectsPath, setArchivedProjectsPath] = useState(settings.archivedProjectsPath);
+  const [mergeDirectory, setMergeDirectory] = useState(settings.mergeDirectory);
   const [newPattern, setNewPattern] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,6 +36,7 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
       globalExcludePatterns: patterns,
       trashDirectory,
       archivedProjectsPath,
+      mergeDirectory,
     });
     setIsSubmitting(false);
     if (result?.error) {
@@ -63,6 +65,23 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
         />
         <p className="text-xs text-gray-400 mb-4">
           Directory where archived projects will be stored.
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <label htmlFor="merge-directory" className="block text-sm font-medium text-gray-300 mb-2">
+          Merge Directory
+        </label>
+        <input
+          type="text"
+          id="merge-directory"
+          value={mergeDirectory}
+          onChange={(e) => setMergeDirectory(e.target.value)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4"
+          placeholder="./merged"
+        />
+        <p className="text-xs text-gray-400">
+          Directory where merged files will be saved.
         </p>
       </div>
 
