@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArchivedFolder } from '@/lib/archiveStore';
+import { formatBytes } from '@/lib/formatters';
 
 export default function ArchivePage() {
   const [archivedFolders, setArchivedFolders] = useState<ArchivedFolder[]>([]);
@@ -36,16 +37,8 @@ export default function ArchivePage() {
     return new Date(dateString).toLocaleString();
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   return (
-    <div className="container mx-auto p-8">
+    <div className="container-fluid mx-auto p-8">
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Archive</h1>
@@ -105,16 +98,16 @@ export default function ArchivePage() {
                       <div className="text-sm font-medium text-white">{folder.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{folder.originalPath}</div>
+                      <div className="text-sm text-gray-300">{folder.absoluteRoute}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-300">{formatDate(folder.archivedAt)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{formatFileSize(folder.size)}</div>
+                      <div className="text-sm text-gray-300">{formatBytes(folder.totalBytes)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{folder.fileCount}</div>
+                      <div className="text-sm text-gray-300">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
