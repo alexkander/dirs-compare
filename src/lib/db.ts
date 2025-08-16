@@ -34,7 +34,8 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    globalExcludePatterns TEXT NOT NULL
+    globalExcludePatterns TEXT NOT NULL,
+    trashDirectory TEXT NOT NULL DEFAULT './.trash'
   );
 `);
 
@@ -50,6 +51,16 @@ try {
   db.exec('ALTER TABLE file_items ADD COLUMN sizeBytes INTEGER NOT NULL DEFAULT 0');
 } catch {
   // Ignore error if column already exists
+}
+
+// Migration for settings table: add trashDirectory
+try {
+  const columns = db.prepare("PRAGMA table_info(settings)").all() as Array<{name: string}>;
+  if (!columns.some(col => col.name === 'trashDirectory')) {
+    db.exec("ALTER TABLE settings ADD COLUMN trashDirectory TEXT NOT NULL DEFAULT './.trash'");
+  }
+} catch (error) {
+  console.error('Error adding trashDirectory column:', error);
 }
 
 // Add excludePatterns, totalBytes and countFiles columns to folders table if they don't exist (for existing databases)

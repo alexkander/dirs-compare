@@ -10,6 +10,7 @@ interface SettingsFormProps {
 
 export default function SettingsForm({ settings }: SettingsFormProps) {
   const [patterns, setPatterns] = useState(settings.globalExcludePatterns);
+  const [trashDirectory, setTrashDirectory] = useState(settings.trashDirectory);
   const [newPattern, setNewPattern] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,16 +30,41 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const result = await updateSettingsAction(patterns);
+    const result = await updateSettingsAction({
+      globalExcludePatterns: patterns,
+      trashDirectory,
+    });
     setIsSubmitting(false);
     if (result?.error) {
       alert(`Error: ${result.error}`);
+    } else {
+      // Show success message
+      alert('Settings saved successfully!');
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-      <h2 className="text-xl font-semibold mb-4 text-white">Global Exclude Patterns</h2>
+      <h2 className="text-xl font-semibold mb-4 text-white">Global Settings</h2>
+      
+      <div className="mb-6">
+        <label htmlFor="trash-directory" className="block text-sm font-medium text-gray-300 mb-2">
+          Trash Directory
+        </label>
+        <input
+          type="text"
+          id="trash-directory"
+          value={trashDirectory}
+          onChange={(e) => setTrashDirectory(e.target.value)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4"
+          placeholder="./.trash"
+        />
+        <p className="text-xs text-gray-400">
+          Directory where deleted files will be moved to instead of being permanently deleted.
+        </p>
+      </div>
+
+      <h3 className="text-lg font-medium text-white mb-3">Global Exclude Patterns</h3>
       
       <div className="mb-4">
         {patterns.map(pattern => (

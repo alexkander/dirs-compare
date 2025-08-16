@@ -3,10 +3,16 @@
 import { revalidatePath } from 'next/cache';
 import { updateSettings, Settings } from '@/lib/settingsStore';
 
-export async function updateSettingsAction(newPatterns: string[]) {
+interface UpdateSettingsParams {
+  globalExcludePatterns: string[];
+  trashDirectory: string;
+}
+
+export async function updateSettingsAction({ globalExcludePatterns, trashDirectory }: UpdateSettingsParams) {
   try {
     const settings: Settings = {
-      globalExcludePatterns: newPatterns,
+      globalExcludePatterns,
+      trashDirectory,
     };
     updateSettings(settings);
     revalidatePath('/settings');
