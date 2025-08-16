@@ -36,11 +36,11 @@ export async function createFolderAction(formData: FormData) {
       const subdirectories = await getSubdirectories(parsed.absoluteRoute);
       for (const subdir of subdirectories) {
         if (!folderExists(subdir)) {
-          await addFolder(subdir);
+          await addFolder({ absoluteRoute: subdir });
         }
       }
     } else {
-      await addFolder(parsed.absoluteRoute);
+      await addFolder({ absoluteRoute: parsed.absoluteRoute });
     }
 
     revalidatePath('/');

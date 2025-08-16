@@ -23,10 +23,18 @@ interface RawFolder {
   checksum: string | null;
 }
 
-export function addFolder(absoluteRoute: string): void {
-  const id = uuidv4();
-  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles, checksum) VALUES (?, ?, ?, ?, ?, ?)');
-  stmt.run(id, absoluteRoute, '[]', null, null, null);
+export function addFolder(folder: Partial<Folder>): void {
+  const id = folder.id || uuidv4();
+  const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles, checksum, lastSync) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  stmt.run(
+    id,
+    folder.absoluteRoute,
+    JSON.stringify(folder.excludePatterns || []),
+    folder.totalBytes,
+    folder.countFiles,
+    folder.checksum,
+    folder.lastSync?.toISOString()|| null
+  );
 }
 
 export function getFolders(): Folder[] {
