@@ -6,8 +6,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Folder } from '../lib/folderStore';
 import { formatBytes, formatChecksum } from '../lib/formatters';
 import AddFolderForm from '../components/AddFolderForm';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
@@ -163,6 +165,23 @@ export default function Home() {
     }
   };
 
+  const handleCompare = (folder: Folder) => {
+    // Find all folders with the same name as the clicked folder
+    const folderName = path.basename(folder.absoluteRoute);
+    const matchingFolders = folders.filter(f => 
+      path.basename(f.absoluteRoute) === folderName && f.id !== folder.id
+    );
+
+    if (matchingFolders.length === 0) {
+      alert('No other folders with the same name found to compare with.');
+      return;
+    }
+
+    // Create a comma-separated list of folder IDs, with the clicked folder first
+    const folderIds = [folder.id, ...matchingFolders.map(f => f.id)];
+    router.push(`/compare?folders=${folderIds.join(',')}`);
+  };
+
   const handleSync = async (folderId: string) => {
     setSyncingFolderId(folderId);
     try {
@@ -271,7 +290,16 @@ export default function Home() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-4">
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCompare(folder);
+                          }}
+                          className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          Compare
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
