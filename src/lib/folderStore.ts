@@ -25,7 +25,7 @@ interface RawFolder {
   merging: number; // SQLite stores booleans as 0/1
 }
 
-export function addFolder(folder: Partial<Folder>): void {
+export function addFolder(folder: Partial<Folder>): Folder {
   const id = folder.id || uuidv4();
   const stmt = db.prepare('INSERT INTO folders (id, absoluteRoute, excludePatterns, totalBytes, countFiles, checksum, lastSync, merging) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   stmt.run(
@@ -38,6 +38,18 @@ export function addFolder(folder: Partial<Folder>): void {
     folder.lastSync?.toISOString() || null,
     folder.merging ? 1 : 0
   );
+
+  // Return the created folder
+  return {
+    id,
+    absoluteRoute: folder.absoluteRoute!,
+    excludePatterns: folder.excludePatterns || [],
+    totalBytes: folder.totalBytes ?? null,
+    countFiles: folder.countFiles ?? null,
+    checksum: folder.checksum ?? null,
+    lastSync: folder.lastSync || null,
+    merging: !!folder.merging
+  };
 }
 
 export function getFolders(): Folder[] {

@@ -170,21 +170,73 @@ export default function Home() {
     }
   };
 
-  const handleMerge = (folder: Folder) => {
-    // Find all folders with the same name as the clicked folder
+  const getMergeFolder = async (folder: Folder) => {
+    // Get the folder name from the source folder
     const folderName = path.basename(folder.absoluteRoute);
-    const matchingFolders = folders.filter(f => 
-      path.basename(f.absoluteRoute) === folderName && f.id !== folder.id
+      
+    // Check if a merge folder with the same name already exists
+    const existingMergeFolder = folders.find(f => 
+      f.merging && path.basename(f.absoluteRoute) === folderName
     );
-
-    if (matchingFolders.length === 0) {
-      alert('No other folders with the same name found to merge with.');
-      return;
+    
+    if (existingMergeFolder) {
+      return existingMergeFolder;
     }
+    
+    // Create the merge folder (the server will handle path construction)
+    const newFolderResponse = await fetch('/api/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        folderName,
+        merging: true
+      })
+    });
 
-    // Create a comma-separated list of folder IDs, with the clicked folder first
-    const folderIds = [folder.id, ...matchingFolders.map(f => f.id)];
-    router.push(`/merge?folders=${folderIds.join(',')}`);
+    if (!newFolderResponse.ok) {
+      const error = await newFolderResponse.json().catch(() => ({}));
+      throw new Error(error.message || 'Failed to create merge folder');
+    }
+    
+    const mergeFolder = await newFolderResponse.json();
+
+    return mergeFolder;
+  };
+
+  const handleMerge = async (folder: Folder) => {
+    try {
+      // Get the folder name from the source folder
+      const folderName = path.basename(folder.absoluteRoute);
+      const mergeFolder = await getMergeFolder(folder);
+
+      // Sync the merge folder
+      const syncResponse = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId: mergeFolder.id })
+      });
+
+      if (!syncResponse.ok) {
+        throw new Error('Failed to sync merge folder');
+      }
+
+      // Find all folders with the same name as the clicked folder
+      const matchingFolders = folders.filter(f => 
+        path.basename(f.absoluteRoute) === folderName && 
+        f.id !== mergeFolder.id &&
+        f.id !== folder.id
+      );
+
+      // Create a comma-separated list of folder IDs, with the merge folder first
+      const folderIds = [mergeFolder.id, folder.id, ...matchingFolders.map(f => f.id)];
+      
+      // Redirect to merge page with the merge folder and source folders
+      router.push(`/merge?folders=${folderIds.join(',')}`);
+      
+    } catch (error) {
+      console.error('Error in handleMerge:', error);
+      alert(`Merge failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleSync = async (folderId: string) => {
