@@ -63,6 +63,16 @@ try {
   console.error('Error adding trashDirectory column:', error);
 }
 
+// Migration for settings table: add archivedProjectsPath
+try {
+  const columns = db.prepare("PRAGMA table_info(settings)").all() as Array<{name: string}>;
+  if (!columns.some(col => col.name === 'archivedProjectsPath')) {
+    db.exec("ALTER TABLE settings ADD COLUMN archivedProjectsPath TEXT NOT NULL DEFAULT './.archive'");
+  }
+} catch (error) {
+  console.error('Error adding archivedProjectsPath column:', error);
+}
+
 // Add excludePatterns, totalBytes and countFiles columns to folders table if they don't exist (for existing databases)
 interface ColumnInfo {
   name: string;

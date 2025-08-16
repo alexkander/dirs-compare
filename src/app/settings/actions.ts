@@ -6,13 +6,15 @@ import { updateSettings, Settings } from '@/lib/settingsStore';
 interface UpdateSettingsParams {
   globalExcludePatterns: string[];
   trashDirectory: string;
+  archivedProjectsPath: string;
 }
 
-export async function updateSettingsAction({ globalExcludePatterns, trashDirectory }: UpdateSettingsParams) {
+export async function updateSettingsAction({ globalExcludePatterns, trashDirectory, archivedProjectsPath }: UpdateSettingsParams) {
   try {
     const settings: Settings = {
       globalExcludePatterns,
       trashDirectory,
+      archivedProjectsPath,
     };
     updateSettings(settings);
     revalidatePath('/settings');

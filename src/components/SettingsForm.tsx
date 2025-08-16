@@ -11,6 +11,7 @@ interface SettingsFormProps {
 export default function SettingsForm({ settings }: SettingsFormProps) {
   const [patterns, setPatterns] = useState(settings.globalExcludePatterns);
   const [trashDirectory, setTrashDirectory] = useState(settings.trashDirectory);
+  const [archivedProjectsPath, setArchivedProjectsPath] = useState(settings.archivedProjectsPath);
   const [newPattern, setNewPattern] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,6 +34,7 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
     const result = await updateSettingsAction({
       globalExcludePatterns: patterns,
       trashDirectory,
+      archivedProjectsPath,
     });
     setIsSubmitting(false);
     if (result?.error) {
@@ -47,6 +49,23 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
     <form onSubmit={handleSubmit} className="bg-gray-800 p-6 rounded-lg border border-gray-700">
       <h2 className="text-xl font-semibold mb-4 text-white">Global Settings</h2>
       
+      <div className="mb-6">
+        <label htmlFor="archived-projects-path" className="block text-sm font-medium text-gray-300 mb-2">
+          Archived Projects Path
+        </label>
+        <input
+          type="text"
+          id="archived-projects-path"
+          value={archivedProjectsPath}
+          onChange={(e) => setArchivedProjectsPath(e.target.value)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4"
+          placeholder="./.archive"
+        />
+        <p className="text-xs text-gray-400 mb-4">
+          Directory where archived projects will be stored.
+        </p>
+      </div>
+
       <div className="mb-6">
         <label htmlFor="trash-directory" className="block text-sm font-medium text-gray-300 mb-2">
           Trash Directory
