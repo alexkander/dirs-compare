@@ -2,35 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { TrashedFolder } from '@/lib/trashStore';
-import { formatBytes } from '@/lib/formatters';
+import { ArchivedFolder } from '@/lib/archiveStore';
 
-export default function TrashPage() {
-  const [trashedFolders, setTrashedFolders] = useState<TrashedFolder[]>([]);
+export default function ArchivePage() {
+  const [archivedFolders, setArchivedFolders] = useState<ArchivedFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadTrashedFolders = async () => {
+    const loadArchivedFolders = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/trash');
+        const response = await fetch('/api/archive');
         
         if (!response.ok) {
-          throw new Error('Failed to load trashed folders');
+          throw new Error('Failed to load archived folders');
         }
         
         const folders = await response.json();
-        setTrashedFolders(folders);
+        setArchivedFolders(folders);
       } catch (err) {
-        console.error('Error loading trashed folders:', err);
-        setError('Failed to load trashed folders');
+        console.error('Error loading archived folders:', err);
+        setError('Failed to load archived folders');
       } finally {
         setLoading(false);
       }
     };
 
-    loadTrashedFolders();
+    loadArchivedFolders();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -49,8 +48,8 @@ export default function TrashPage() {
     <div className="container mx-auto p-8">
       <header className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Trash</h1>
-          <p className="text-gray-400">View and manage deleted folders</p>
+          <h1 className="text-2xl font-bold text-white">Archive</h1>
+          <p className="text-gray-400">View and manage archived folders</p>
         </div>
         <Link 
           href="/" 
@@ -70,9 +69,9 @@ export default function TrashPage() {
             <strong className="font-bold">Error: </strong>
             <span className="block sm:inline">{error}</span>
           </div>
-        ) : trashedFolders.length === 0 ? (
+        ) : archivedFolders.length === 0 ? (
           <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 text-center">
-            <p className="text-gray-400">No items in trash</p>
+            <p className="text-gray-400">No archived folders found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -86,7 +85,7 @@ export default function TrashPage() {
                     Original Location
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Deleted
+                    Archived At
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Size
@@ -100,35 +99,29 @@ export default function TrashPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {trashedFolders.map((folder) => (
+                {archivedFolders.map((folder) => (
                   <tr key={folder.id} className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-white">{folder.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{folder.absoluteRoute}</div>
+                      <div className="text-sm text-gray-300">{folder.originalPath}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{formatDate(folder.deletedAt)}</div>
+                      <div className="text-sm text-gray-300">{formatDate(folder.archivedAt)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{formatBytes(folder.totalBytes)}</div>
+                      <div className="text-sm text-gray-300">{formatFileSize(folder.size)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-300">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</div>
+                      <div className="text-sm text-gray-300">{folder.fileCount}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => handleRestore(folder.id)}
-                        className="text-blue-400 hover:text-blue-300 mr-4"
+                        className="text-blue-400 hover:text-blue-300"
                       >
                         Restore
-                      </button>
-                      <button
-                        onClick={() => handleDelete(folder.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        Delete Permanently
                       </button>
                     </td>
                   </tr>
@@ -143,7 +136,7 @@ export default function TrashPage() {
 
   async function handleRestore(folderId: string) {
     try {
-      const response = await fetch('/api/trash', {
+      const response = await fetch('/api/archive', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderId }),
@@ -151,39 +144,15 @@ export default function TrashPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to restore folder');
+        throw new Error(errorData.error || 'Failed to restore folder from archive');
       }
 
       // Refresh the list after successful restore
-      setTrashedFolders(prev => prev.filter(folder => folder.id !== folderId));
+      setArchivedFolders(prev => prev.filter(folder => folder.id !== folderId));
       alert('Folder restored successfully');
     } catch (error) {
       console.error('Error restoring folder:', error);
       alert(`Failed to restore folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  async function handleDelete(folderId: string) {
-    if (!window.confirm('Are you sure you want to permanently delete this folder? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/trash?id=${encodeURIComponent(folderId)}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete folder');
-      }
-
-      // Remove the folder from the list after successful deletion
-      setTrashedFolders(prev => prev.filter(folder => folder.id !== folderId));
-      alert('Folder permanently deleted');
-    } catch (error) {
-      console.error('Error deleting folder:', error);
-      alert(`Failed to delete folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

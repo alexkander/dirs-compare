@@ -7,7 +7,7 @@ export interface Settings {
 }
 
 const defaultSettings: Settings = {
-  globalExcludePatterns: ['.git', 'node_modules'],
+  globalExcludePatterns: ['.git', 'node_modules', 'coverage', 'dist', '.junit', 'build', 'android', 'ios'],
   trashDirectory: './.trash',
   archivedProjectsPath: './.archive',
 };

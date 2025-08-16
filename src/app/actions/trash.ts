@@ -5,6 +5,7 @@ import { getFolderById, deleteFolder } from '@/lib/folderStore';
 import { deleteFileItemsByFolderId } from '@/lib/fileItemStore';
 import fs from 'fs/promises';
 import path from 'path';
+import { TrashedFolder } from '@/lib/trashStore';
 
 export async function moveFolderToTrash(folderId: string) {
   try {
@@ -31,17 +32,12 @@ export async function moveFolderToTrash(folderId: string) {
     // Move the folder to trash
     await fs.rename(folder.absoluteRoute, destinationPath);
 
-    // Save the original path before updating
-    const originalAbsoluteRoute = folder.absoluteRoute;
-    
     // Create metadata with the original path and deletion info
-    const deletedFolderData = {
+    const deletedFolderData: TrashedFolder = {
       ...folder,
-      // Keep the original absoluteRoute
-      originalAbsoluteRoute,
-      // Add the new location as a separate field
-      trashLocation: destinationPath,
-      lastSync: new Date(),
+      name: folderName,
+      excludePatterns: JSON.stringify(folder.excludePatterns || []),
+      lastSync: folder.lastSync?.toISOString() || null,
       deletedAt: new Date().toISOString()
     };
 

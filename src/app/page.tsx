@@ -12,6 +12,7 @@ export default function Home() {
   const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
   const [movingToTrashId, setMovingToTrashId] = useState<string | null>(null);
+  const [movingToArchiveId, setMovingToArchiveId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Folder | 'name' | 'path'; direction: 'ascending' | 'descending' } | null>(null);
 
   const sortedFolders = useMemo(() => {
@@ -136,6 +137,32 @@ export default function Home() {
     }
   };
 
+  const handleMoveToArchive = async (folderId: string) => {
+    if (window.confirm('Are you sure you want to move this folder to archive? The folder will be moved to the archive directory for long-term storage.')) {
+      setMovingToArchiveId(folderId);
+      try {
+        const response = await fetch('/api/archive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to move folder to archive');
+        }
+        
+        await fetchFolders(); // Refresh folder data after moving to archive
+        alert('Folder moved to archive successfully');
+      } catch (error) {
+        console.error('An error occurred while moving to archive:', error);
+        alert(`Failed to move to archive: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setMovingToArchiveId(null);
+      }
+    }
+  };
+
   const handleSync = async (folderId: string) => {
     setSyncingFolderId(folderId);
     try {
@@ -177,6 +204,16 @@ export default function Home() {
               <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             Trash
+          </Link>
+          <Link 
+            href="/archive" 
+            className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+              <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+            Archive
           </Link>
           <Link 
             href="/settings" 
@@ -234,32 +271,48 @@ export default function Home() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-4">
-                      <button
-                        onClick={() => handleSync(folder.id)}
-                        disabled={syncingFolderId === folder.id}
-                        className="text-green-500 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
-                      >
-                        {syncingFolderId === folder.id ? 'Syncing...' : 'Sync'}
-                      </button>
-                                            <Link href={`/folders/${folder.id}/edit`} className="text-blue-500 hover:underline">Exclusion</Link>
-                      {folder.countFiles === 0 && folder.lastSync && (
+                      <div className="flex space-x-2">
                         <button
-                          onClick={() => handleMoveToTrash(folder.id)}
-                          disabled={movingToTrashId === folder.id}
-                          className="text-yellow-500 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
-                          title="Move to trash"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSync(folder.id);
+                          }}
+                          disabled={syncingFolderId === folder.id}
+                          className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
                         >
-                          {movingToTrashId === folder.id ? 'Moving...' : 'Move to Trash'}
+                          {syncingFolderId === folder.id ? 'Syncing...' : 'Sync'}
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(folder.id)}
-                        disabled={deletingFolderId === folder.id}
-                        className="text-red-500 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
-                        title="Delete permanently"
-                      >
-                        {deletingFolderId === folder.id ? 'Deleting...' : 'Delete'}
-                      </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveToArchive(folder.id);
+                          }}
+                          disabled={movingToArchiveId === folder.id}
+                          className="px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-400"
+                        >
+                          {movingToArchiveId === folder.id ? 'Moving...' : 'Archive'}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveToTrash(folder.id);
+                          }}
+                          disabled={movingToTrashId === folder.id}
+                          className="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:bg-yellow-400"
+                        >
+                          {movingToTrashId === folder.id ? 'Moving...' : 'Trash'}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(folder.id);
+                          }}
+                          disabled={deletingFolderId === folder.id}
+                          className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-red-400"
+                        >
+                          {deletingFolderId === folder.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server';
 import { moveFolderToTrash } from '@/app/actions/trash';
-import { addFolder, updateFolder } from '@/lib/folderStore';
+import { addFolder, Folder } from '@/lib/folderStore';
 import { getSettings } from '@/lib/settingsStore';
 import fs from 'fs/promises';
 import path from 'path';
-
-interface TrashedFolder {
-  id: string;
-  name: string;
-  originalPath: string;
-  deletedAt: string;
-  size: number;
-  fileCount: number;
-}
+import { TrashedFolder } from '@/lib/trashStore';
 
 // GET /api/trash - Get all trashed folders
 export async function GET() {
@@ -41,19 +33,9 @@ export async function GET() {
         const folderJsonPath = path.join(folderPath, 'folder.json');
         
         // Read the folder.json file
-        const folderData = JSON.parse(await fs.readFile(folderJsonPath, 'utf-8'));
+        const folderData: TrashedFolder = JSON.parse(await fs.readFile(folderJsonPath, 'utf-8'));
         
-        // Get folder stats
-        const stats = await fs.stat(folderPath);
-        
-        folders.push({
-          id: entry.name,
-          name: path.basename(folderData.originalAbsoluteRoute || folderData.originalPath || 'Unknown'),
-          originalPath: folderData.originalAbsoluteRoute || folderData.originalPath || 'Unknown',
-          deletedAt: stats.birthtime.toISOString(),
-          size: folderData.size || 0,
-          fileCount: folderData.fileCount || 0
-        });
+        folders.push(folderData);
       } catch (err) {
         console.error(`Error processing folder ${entry.name}:`, err);
         // Skip this folder but continue with others
@@ -119,16 +101,15 @@ export async function PATCH(request: Request) {
     const folderJsonPath = path.join(folderPath, 'folder.json');
 
     // Read the folder metadata
-    const folderData = JSON.parse(await fs.readFile(folderJsonPath, 'utf-8'));
-    const originalPath = folderData.originalAbsoluteRoute || folderData.originalPath;
+    const folderData: TrashedFolder = JSON.parse(await fs.readFile(folderJsonPath, 'utf-8'));
     
-    if (!originalPath) {
+    if (!folderData.absoluteRoute) {
       throw new Error('Original path not found in folder metadata');
     }
 
     // Check if the original location exists
     try {
-      await fs.access(originalPath);
+      await fs.access(folderData.absoluteRoute);
       return NextResponse.json(
         { error: 'A folder already exists at the original location' },
         { status: 409 }
@@ -136,38 +117,35 @@ export async function PATCH(request: Request) {
     } catch (err: unknown) {
       // Original location doesn't exist, which is what we want
       if (err instanceof Error) {
-        console.log(`Original location ${originalPath} is available for restoration: ${err.message}`);
+        console.log(`Original location ${folderData.absoluteRoute} is available for restoration: ${err.message}`);
       } else {
-        console.log(`Original location ${originalPath} is available for restoration`);
+        console.log(`Original location ${folderData.absoluteRoute} is available for restoration`);
       }
     }
 
     // Get the actual folder to restore (the subfolder inside the trash directory)
-    const entries = await fs.readdir(folderPath, { withFileTypes: true });
-    const folderToRestore = entries.find(entry => 
-      entry.isDirectory() && entry.name !== '.trash' && entry.name !== 'folder.json'
-    );
+    const folderToRestore = path.basename(folderData.absoluteRoute);
 
     if (!folderToRestore) {
       throw new Error('No folder found to restore in trash directory');
     }
 
-    const sourcePath = path.join(folderPath, folderToRestore.name);
+    const sourcePath = path.join(folderPath, folderToRestore);
     
     // Create parent directory if it doesn't exist
-    await fs.mkdir(path.dirname(originalPath), { recursive: true });
+    await fs.mkdir(path.dirname(folderData.absoluteRoute), { recursive: true });
     
     // Move the folder back to its original location
-    await fs.rename(sourcePath, originalPath);
+    await fs.rename(sourcePath, folderData.absoluteRoute);
     
     // Remove the now-empty trash directory
     await fs.rm(folderPath, { recursive: true, force: true });
 
     // Add the folder back to the database
-    const newFolder = {
+    const newFolder: Folder = {
       id: folderId,
-      absoluteRoute: originalPath,
-      excludePatterns: folderData.excludePatterns || [],
+      absoluteRoute: folderData.absoluteRoute,
+      excludePatterns: JSON.parse(folderData.excludePatterns || '[]') as string[],
       lastSync: folderData.lastSync ? new Date(folderData.lastSync) : null,
       totalBytes: folderData.totalBytes,
       countFiles: folderData.countFiles,
