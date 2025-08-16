@@ -5,13 +5,13 @@ import path from 'path';
 import { useEffect, useMemo, useState } from 'react';
 import { Folder } from '../lib/folderStore';
 import { formatBytes, formatChecksum } from '../lib/formatters';
-
 import AddFolderForm from '../components/AddFolderForm';
 
 export default function Home() {
   const [folders, setFolders] = useState<Folder[]>([]);
-    const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
+  const [syncingFolderId, setSyncingFolderId] = useState<string | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
+  const [movingToTrashId, setMovingToTrashId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Folder | 'name' | 'path'; direction: 'ascending' | 'descending' } | null>(null);
 
   const sortedFolders = useMemo(() => {
@@ -110,6 +110,32 @@ export default function Home() {
     }
   };
 
+  const handleMoveToTrash = async (folderId: string) => {
+    if (window.confirm('Are you sure you want to move this folder to trash? The folder will be moved to the trash directory instead of being deleted permanently.')) {
+      setMovingToTrashId(folderId);
+      try {
+        const response = await fetch('/api/trash', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to move folder to trash');
+        }
+        
+        await fetchFolders(); // Refresh folder data after moving to trash
+        alert('Folder moved to trash successfully');
+      } catch (error) {
+        console.error('An error occurred while moving to trash:', error);
+        alert(`Failed to move to trash: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setMovingToTrashId(null);
+      }
+    }
+  };
+
   const handleSync = async (folderId: string) => {
     setSyncingFolderId(folderId);
     try {
@@ -133,7 +159,7 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-8">
+    <div className="container-fluid mx-auto p-8">
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Folder Sync Manager</h1>
@@ -201,10 +227,21 @@ export default function Home() {
                         {syncingFolderId === folder.id ? 'Syncing...' : 'Sync'}
                       </button>
                                             <Link href={`/folders/${folder.id}/edit`} className="text-blue-500 hover:underline">Exclusion</Link>
+                      {folder.countFiles === 0 && folder.lastSync && (
+                        <button
+                          onClick={() => handleMoveToTrash(folder.id)}
+                          disabled={movingToTrashId === folder.id}
+                          className="text-yellow-500 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
+                          title="Move to trash"
+                        >
+                          {movingToTrashId === folder.id ? 'Moving...' : 'Move to Trash'}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(folder.id)}
                         disabled={deletingFolderId === folder.id}
                         className="text-red-500 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed"
+                        title="Delete permanently"
                       >
                         {deletingFolderId === folder.id ? 'Deleting...' : 'Delete'}
                       </button>
