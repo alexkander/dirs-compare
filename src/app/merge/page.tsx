@@ -53,7 +53,27 @@ const AddFolderToMerge = ({ allFolders, onAddFolder, selectedFolderIds }: { allF
 
 
 
-const MergeFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes, onRemove }: { folder: Folder, fileItems: FileItem[], unifiedFileRoutes: string[], matchingChecksumRoutes: Set<string>, mismatchedChecksumRoutes: Set<string>, onRemove: (folderId: string) => void }) => {
+interface MergeFolderColumnProps {
+  folder: Folder;
+  fileItems: FileItem[];
+  unifiedFileRoutes: string[];
+  matchingChecksumRoutes: Set<string>;
+  mismatchedChecksumRoutes: Set<string>;
+  missingInMergeColumn: Set<string>;
+  selectedFolders: Folder[];
+  onRemove: (folderId: string) => void;
+}
+
+const MergeFolderColumn = ({ 
+  folder, 
+  fileItems, 
+  unifiedFileRoutes, 
+  matchingChecksumRoutes, 
+  mismatchedChecksumRoutes, 
+  missingInMergeColumn, 
+  selectedFolders,
+  onRemove 
+}: MergeFolderColumnProps) => {
     const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -121,11 +141,18 @@ const MergeFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingCheck
             {unifiedFileRoutes.map((route, index) => {
               const item = fileItemsByRoute.get(route);
               if (item) {
+                // For merge column (first folder), use the normal coloring
+                // For other columns, only apply color if the file exists in that column
+                const isMergeColumn = selectedFolders[0]?.id === folder.id;
+                const shouldShowColor = isMergeColumn || fileItems.some(fi => fi.relativeRoute === route);
+                
                 return (
                   <tr key={item.id} className={
-                    matchingChecksumRoutes.has(item.relativeRoute) ? 'bg-green-500/10' :
-                    mismatchedChecksumRoutes.has(item.relativeRoute) ? 'bg-yellow-500/10' :
-                    'bg-red-500/10'
+                    shouldShowColor ? (
+                      missingInMergeColumn.has(item.relativeRoute) ? 'bg-red-500/10' :
+                      matchingChecksumRoutes.has(item.relativeRoute) ? 'bg-green-500/10' :
+                      mismatchedChecksumRoutes.has(item.relativeRoute) ? 'bg-yellow-500/10' : ''
+                    ) : ''
                   }>
                     <td className="text-right py-1 px-2 text-gray-500">{index + 1}</td>
                     <td className="py-1 px-2 text-gray-300 truncate" title={item.relativeRoute}>{item.relativeRoute}</td>
@@ -134,10 +161,17 @@ const MergeFolderColumn = ({ folder, fileItems, unifiedFileRoutes, matchingCheck
                   </tr>
                 );
               } else {
+                // For empty cells, only show red background in the merge column if the file is missing there
+                const isMergeColumn = selectedFolders[0]?.id === folder.id;
                 return (
                   <tr key={route} className="h-[25px]">
                     <td className="text-right py-1 px-2 text-gray-500">{index + 1}</td>
-                    <td colSpan={3} className="bg-red-500/10"></td>
+                    <td 
+                      colSpan={3} 
+                      className={
+                        isMergeColumn && missingInMergeColumn.has(route) ? 'bg-red-500/10' : ''
+                      }
+                    ></td>
                   </tr>
                 );
               }
@@ -159,33 +193,104 @@ export default function MergePage() {
   const [fileItemsMap, setFileItemsMap] = useState<Record<string, FileItem[]>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  const { unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes } = useMemo((): { unifiedFileRoutes: string[]; matchingChecksumRoutes: Set<string>; mismatchedChecksumRoutes: Set<string> } => {
+  const { unifiedFileRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes, missingInMergeColumn } = useMemo((): { 
+    unifiedFileRoutes: string[]; 
+    matchingChecksumRoutes: Set<string>; 
+    mismatchedChecksumRoutes: Set<string>;
+    missingInMergeColumn: Set<string>;
+  } => {
     const numSelectedFolders = selectedFolders.length;
-    if (numSelectedFolders < 2) {
-      const allRoutes = new Set(Object.values({...fileItemsMap}).flat().map(item => item.relativeRoute));
-      const sortedRoutes = Array.from(allRoutes).sort((a, b) => a.localeCompare(b));
-      return { unifiedFileRoutes: sortedRoutes, matchingChecksumRoutes: new Set(), mismatchedChecksumRoutes: new Set() };
+    if (numSelectedFolders === 0) {
+      return { 
+        unifiedFileRoutes: [], 
+        matchingChecksumRoutes: new Set(), 
+        mismatchedChecksumRoutes: new Set(),
+        missingInMergeColumn: new Set()
+      };
     }
 
+    // Get all unique file routes across all folders
     const allFileItems = Object.values(fileItemsMap).flat();
     const allRoutes = new Set(allFileItems.map(item => item.relativeRoute));
     const sortedRoutes = Array.from(allRoutes).sort((a, b) => a.localeCompare(b));
 
     const matchingChecksumRoutes = new Set<string>();
     const mismatchedChecksumRoutes = new Set<string>();
+    const missingInMergeColumn = new Set<string>();
 
+    // Get the first folder (Merge Column)
+    const mergeFolderId = selectedFolders[0]?.id;
+    const mergeFolderFiles = fileItemsMap[mergeFolderId] || [];
+    const mergeFolderFileMap = new Map(mergeFolderFiles.map(item => [item.relativeRoute, item]));
+
+    // Check each file in all folders
     for (const route of sortedRoutes) {
-      const itemsForRoute: FileItem[] = [];
-      for (const folderId of selectedFolders.map(f => f.id)) {
-        const item = fileItemsMap[folderId]?.find(i => i.relativeRoute === route);
-        if (item) {
-          itemsForRoute.push(item);
+      const mergeColumnItem = mergeFolderFileMap.get(route);
+      
+      if (!mergeColumnItem) {
+        // File doesn't exist in merge column but exists in other folders
+        missingInMergeColumn.add(route);
+        continue;
+      }
+
+      // File exists in merge column, now check other folders
+      const otherFolders = selectedFolders.slice(1);
+      const existsInOtherFolders = otherFolders.some(folder => {
+        const folderFiles = fileItemsMap[folder.id] || [];
+        return folderFiles.some(item => item.relativeRoute === route);
+      });
+
+      if (!existsInOtherFolders) {
+        // File exists only in merge column
+        matchingChecksumRoutes.add(route);
+        continue;
+      }
+
+      // File exists in merge column and at least one other folder
+      const allChecksums = new Set<string>();
+      let allFoldersHaveFile = true;
+
+      for (const folder of selectedFolders) {
+        const folderFiles = fileItemsMap[folder.id] || [];
+        const fileItem = folderFiles.find(item => item.relativeRoute === route);
+        
+        if (fileItem) {
+          allChecksums.add(fileItem.checksum);
+        } else {
+          allFoldersHaveFile = false;
+          break;
         }
       }
 
-      if (itemsForRoute.length === numSelectedFolders) {
-        const checksums = new Set(itemsForRoute.map(i => i.checksum));
-        if (checksums.size === 1) {
+      if (allFoldersHaveFile) {
+        if (allChecksums.size === 1) {
+          // All files have the same checksum
+          matchingChecksumRoutes.add(route);
+        } else {
+          // Files exist in all folders but checksums don't match
+          mismatchedChecksumRoutes.add(route);
+        }
+      } else {
+        // File exists in merge column and some other folders
+        // Check if all files that exist have the same checksum
+        const existingChecksums = new Set<string>();
+        let allMatch = true;
+        
+        for (const folder of selectedFolders) {
+          const folderFiles = fileItemsMap[folder.id] || [];
+          const fileItem = folderFiles.find(item => item.relativeRoute === route);
+          
+          if (fileItem) {
+            if (existingChecksums.size === 0) {
+              existingChecksums.add(fileItem.checksum);
+            } else if (!existingChecksums.has(fileItem.checksum)) {
+              allMatch = false;
+              break;
+            }
+          }
+        }
+        
+        if (allMatch) {
           matchingChecksumRoutes.add(route);
         } else {
           mismatchedChecksumRoutes.add(route);
@@ -193,7 +298,12 @@ export default function MergePage() {
       }
     }
     
-    return { unifiedFileRoutes: sortedRoutes, matchingChecksumRoutes, mismatchedChecksumRoutes };
+    return { 
+      unifiedFileRoutes: sortedRoutes, 
+      matchingChecksumRoutes, 
+      mismatchedChecksumRoutes,
+      missingInMergeColumn
+    };
   }, [fileItemsMap, selectedFolders]);
 
   useEffect(() => {
@@ -297,6 +407,8 @@ export default function MergePage() {
             unifiedFileRoutes={unifiedFileRoutes}
             matchingChecksumRoutes={matchingChecksumRoutes}
             mismatchedChecksumRoutes={mismatchedChecksumRoutes}
+            missingInMergeColumn={missingInMergeColumn}
+            selectedFolders={selectedFolders}
             onRemove={handleRemoveFolder}
           />
         ))}

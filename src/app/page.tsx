@@ -228,8 +228,11 @@ export default function Home() {
       );
 
       // Create a comma-separated list of folder IDs, with the merge folder first
-      const folderIds = [mergeFolder.id, folder.id, ...matchingFolders.map(f => f.id)];
-      
+      const folderIds = [
+        ...(mergeFolder.id === folder.id ? [mergeFolder.id] : [mergeFolder.id, folder.id]),
+        ...matchingFolders.map(f => f.id)
+      ];
+
       // Redirect to merge page with the merge folder and source folders
       router.push(`/merge?folders=${folderIds.join(',')}`);
       
