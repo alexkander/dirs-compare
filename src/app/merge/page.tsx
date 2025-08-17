@@ -75,6 +75,7 @@ const MergeFolderColumn = ({
   onRemove 
 }: MergeFolderColumnProps) => {
     const [isSyncing, setIsSyncing] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -95,6 +96,37 @@ const MergeFolderColumn = ({
       setIsSyncing(false);
     }
   };
+
+  const handleCopyFiles = async () => {
+    if (!selectedFolders.length) return;
+    
+    const mergeFolderId = selectedFolders[0].id;
+    if (folder.id === mergeFolderId) return; // Don't copy to self
+    
+    setIsCopying(true);
+    try {
+      const response = await fetch('/api/copy-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceFolderId: folder.id,
+          targetFolderId: mergeFolderId
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to copy files');
+      }
+      
+      // Refresh the page to show updated state
+      window.location.reload();
+    } catch (error) {
+      console.error('Error copying files:', error);
+      alert('Failed to copy files. Check console for details.');
+    } finally {
+      setIsCopying(false);
+    }
+  };
   const fileItemsByRoute = useMemo(() => new Map(fileItems.map(item => [item.relativeRoute, item])), [fileItems]);
   return (
     <div className="flex-1 min-w-[400px] bg-gray-800 rounded-lg border border-gray-700">
@@ -102,9 +134,19 @@ const MergeFolderColumn = ({
         <div className="flex justify-between items-center pr-4">
           <h3 className="text-lg font-bold text-white mb-1 truncate px-4 pt-4" title={folder.absoluteRoute}>{path.basename(folder.absoluteRoute)}</h3>
           <div className="flex items-center gap-2">
+            {selectedFolders.length > 0 && selectedFolders[0].id !== folder.id && (
+              <button
+                onClick={handleCopyFiles}
+                disabled={isCopying || isSyncing}
+                className="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600 mr-1"
+                title="Copy files to merge folder"
+              >
+                {isCopying ? 'Copying...' : 'Copy Files'}
+              </button>
+            )}
             <button
               onClick={handleSync}
-              disabled={isSyncing}
+              disabled={isSyncing || isCopying}
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600"
             >
               {isSyncing ? 'Syncing...' : 'Sync'}
