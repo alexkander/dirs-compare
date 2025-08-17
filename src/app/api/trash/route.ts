@@ -153,8 +153,6 @@ export async function PATCH(request: Request) {
       merging: folderData.merging || false,
     };
 
-    console.log({newFolder, folderData})
-    
     // First add the folder with a basic record
     addFolder(newFolder);
 

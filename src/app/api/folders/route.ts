@@ -71,8 +71,6 @@ export async function POST(request: Request) {
       lastSync: new Date()
     });
 
-    console.log({newFolder});
-    
     return NextResponse.json(newFolder, { status: 201 });
     
   } catch (error) {
