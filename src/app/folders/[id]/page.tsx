@@ -112,10 +112,12 @@ export default function FolderFilesPage() {
             <tbody className="divide-y divide-gray-700">
               {fileItems.map((file) => (
                 <tr key={file.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{file.relativeRoute}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{formatBytes(file.sizeBytes)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{new Date(file.lastSync).toLocaleString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono" title={file.checksum}>{formatChecksum(file.checksum)}</td>
+                  <td className="px-2 whitespace-nowrap text-sm text-gray-400 font-mono max-w-xs truncate overflow-hidden" title={file.relativeRoute}>
+                    <span className="inline-block max-w-full truncate">{file.relativeRoute}</span>
+                  </td>
+                  <td className="px-2 whitespace-nowrap text-sm text-gray-400">{formatBytes(file.sizeBytes)}</td>
+                  <td className="px-2 whitespace-nowrap text-sm text-gray-400">{new Date(file.lastSync).toLocaleString()}</td>
+                  <td className="px-2 whitespace-nowrap text-sm text-gray-400 font-mono" title={file.checksum}>{formatChecksum(file.checksum)}</td>
                 </tr>
               ))}
             </tbody>

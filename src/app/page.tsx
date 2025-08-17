@@ -16,11 +16,14 @@ export default function Home() {
   const [movingToTrashId, setMovingToTrashId] = useState<string | null>(null);
   const [movingToArchiveId, setMovingToArchiveId] = useState<string | null>(null);
   type SortableKey = keyof Omit<Folder, 'merging'> | 'name' | 'path';
-  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' }>({ 
+    key: 'name', 
+    direction: 'ascending' 
+  });
 
   const sortedFolders = useMemo(() => {
     const sortableItems = [...folders];
-    if (sortConfig !== null) {
+    if (sortConfig) {
       sortableItems.sort((a, b) => {
         let aValue: string | number | Date | string[] | boolean | null | undefined;
         let bValue: string | number | Date | string[] | boolean | null | undefined;
@@ -336,27 +339,31 @@ export default function Home() {
             <tbody className="divide-y divide-gray-700">
               {folders.length > 0 ? (
                 sortedFolders.map((folder) => (
-                  <tr key={folder.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                  <tr key={folder.id} className="hover:bg-gray-700/50 transition-colors">
+                    <td className="px-2 whitespace-nowrap text-sm text-gray-400">
                       <div className="flex items-center space-x-2">
-                        <Link href={`/folders/${folder.id}`} className="text-blue-400 hover:underline">
-                          {path.basename(folder.absoluteRoute)}
-                        </Link>
-                        {folder.merging && (
+                      {folder.merging && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900 text-green-300">
                             merge
                           </span>
                         )}
+                        <Link href={`/folders/${folder.id}`} className="text-blue-400 hover:underline">
+                          {path.basename(folder.absoluteRoute)}
+                        </Link>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {path.dirname(folder.absoluteRoute)}
+                    <td className="px-2 whitespace-nowrap text-sm text-gray-400 max-w-xs">
+                      <div className="truncate overflow-hidden" title={path.dirname(folder.absoluteRoute)}>
+                        <span className="inline-block max-w-full truncate">
+                          {path.dirname(folder.absoluteRoute)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.lastSync?.toLocaleString() ?? ''}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{formatBytes(folder.totalBytes)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-4">
+                    <td className="px-2 whitespace-nowrap text-sm text-gray-400">{folder.lastSync?.toLocaleString() ?? ''}</td>
+                    <td className="px-2 whitespace-nowrap text-sm text-gray-400">{formatBytes(folder.totalBytes)}</td>
+                    <td className="px-2 whitespace-nowrap text-sm text-gray-400">{folder.countFiles != null ? folder.countFiles.toLocaleString() : ''}</td>
+                    <td className="px-2 whitespace-nowrap text-sm text-gray-400 font-mono">{formatChecksum(folder.checksum)}</td>
+                    <td className="px-2 whitespace-nowrap text-sm space-x-4">
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={(e) => {
@@ -397,6 +404,13 @@ export default function Home() {
                         >
                           {movingToTrashId === folder.id ? 'Moving...' : 'Trash'}
                         </button>
+                        <Link
+                          href={`/folders/${folder.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+                        >
+                          Edit Patterns
+                        </Link>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

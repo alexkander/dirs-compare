@@ -74,8 +74,9 @@ const MergeFolderColumn = ({
   selectedFolders,
   onRemove 
 }: MergeFolderColumnProps) => {
-    const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -94,6 +95,30 @@ const MergeFolderColumn = ({
       alert('Sync failed');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleMoveToArchive = async () => {
+    if (window.confirm('Are you sure you want to move this folder to archive? The folder will be moved to the archive directory for long-term storage.')) {
+      setIsArchiving(true);
+      try {
+        const response = await fetch('/api/archive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId: folder.id }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to move folder to archive');
+        }
+        onRemove(folder.id);
+      } catch (error) {
+        console.error('Error moving to archive:', error);
+        alert(`Failed to move to archive: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsArchiving(false);
+      }
     }
   };
 
@@ -137,7 +162,7 @@ const MergeFolderColumn = ({
             {selectedFolders.length > 0 && selectedFolders[0].id !== folder.id && (
               <button
                 onClick={handleCopyFiles}
-                disabled={isCopying || isSyncing}
+                disabled={isCopying || isSyncing || isArchiving}
                 className="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600 mr-1"
                 title="Copy files to merge folder"
               >
@@ -146,12 +171,29 @@ const MergeFolderColumn = ({
             )}
             <button
               onClick={handleSync}
-              disabled={isSyncing || isCopying}
+              disabled={isSyncing || isCopying || isArchiving}
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs disabled:bg-gray-600"
             >
               {isSyncing ? 'Syncing...' : 'Sync'}
             </button>
-            <button onClick={() => onRemove(folder.id)} className="text-red-500 hover:text-red-400 text-xs">Remove</button>
+            {/* Archive button - only show for non-first columns */}
+            {selectedFolders.length > 0 && selectedFolders[0].id !== folder.id && (
+              <button
+                onClick={handleMoveToArchive}
+                disabled={isArchiving || isSyncing || isCopying}
+                className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs disabled:bg-indigo-400"
+                title="Move folder to archive"
+              >
+                {isArchiving ? 'Archiving...' : 'Archive'}
+              </button>
+            )}
+            <button 
+              onClick={() => onRemove(folder.id)} 
+              disabled={isArchiving || isSyncing || isCopying}
+              className="text-red-500 hover:text-red-400 text-xs disabled:text-red-300"
+            >
+              Remove
+            </button>
           </div>
         </div>
         <div className="px-4 mb-2">
@@ -196,23 +238,23 @@ const MergeFolderColumn = ({
                       mismatchedChecksumRoutes.has(item.relativeRoute) ? 'bg-yellow-500/10' : ''
                     ) : ''
                   }>
-                    <td className="text-right py-1 px-2 text-gray-500">{index + 1}</td>
-                    <td className="py-1 px-2 text-gray-300 truncate" title={item.relativeRoute}>{item.relativeRoute}</td>
-                    <td className="py-1 px-2 text-gray-300 whitespace-nowrap">{formatBytes(item.sizeBytes)}</td>
-                    <td className="py-1 px-2 text-gray-300 font-mono">{formatChecksum(item.checksum)}</td>
+                    <td className="text-right px-1 text-gray-500">{index + 1}</td>
+                    <td className="px-1 text-gray-300 max-w-xs truncate overflow-hidden" title={item.relativeRoute}>
+                      <span className="max-w-full truncate">{item.relativeRoute}</span>
+                    </td>
+                    <td className="px-1 text-gray-300 whitespace-nowrap">{formatBytes(item.sizeBytes)}</td>
+                    <td className="px-1 text-gray-300 font-mono">{formatChecksum(item.checksum)}</td>
                   </tr>
                 );
               } else {
                 // For empty cells, only show red background in the merge column if the file is missing there
                 const isMergeColumn = selectedFolders[0]?.id === folder.id;
                 return (
-                  <tr key={route} className="h-[25px]">
-                    <td className="text-right py-1 px-2 text-gray-500">{index + 1}</td>
+                  <tr key={route}>
+                    <td className="text-right px-1 text-gray-500">{index + 1}</td>
                     <td 
                       colSpan={3} 
-                      className={
-                        isMergeColumn && missingInMergeColumn.has(route) ? 'bg-red-500/10' : ''
-                      }
+                      className={`px-1 ${isMergeColumn && missingInMergeColumn.has(route) ? 'bg-red-500/10' : ''}`}
                     ></td>
                   </tr>
                 );
